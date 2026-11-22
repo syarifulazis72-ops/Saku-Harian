@@ -1,0 +1,16 @@
+{
+  "name": "Saku Harian",
+  "short_name": "Saku Harian",
+  "description": "Pencatat Keuangan Rumah Tangga",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0F172A",
+  "theme_color": "#0F172A",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2382/2382461.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Saku Harian</title>
+  <link rel="manifest" href="manifest.json" />
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --primary: #10b981;
+      --danger: #ef4444;
+      --accent: #3b82f6;
+      --border: #334155;
+    }
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { margin: 0; background: var(--bg); color: var(--text); padding: 16px 16px 90px; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-top: env(safe-area-inset-top); }
+    .header h1 { font-size: 20px; margin: 0; }
+    .badge { font-size: 11px; background: #1e293b; border: 1px solid var(--border); padding: 4px 10px; border-radius: 99px; color: var(--muted); }
+    .card { background: var(--card); border-radius: 16px; padding: 16px; margin-bottom: 14px; border: 1px solid var(--border); }
+    .balance-label { font-size: 13px; color: var(--muted); }
+    .balance-amount { font-size: 28px; font-weight: 700; margin: 4px 0 12px; color: var(--primary); }
+    .row { display: flex; gap: 10px; }
+    .btn { flex: 1; border: none; border-radius: 12px; padding: 12px; font-weight: 600; font-size: 14px; cursor: pointer; color: #fff; }
+    .btn-primary { background: var(--primary); }
+    .btn-accent { background: var(--accent); }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .accounts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+    .acc-item { background: #0f172a; padding: 12px; border-radius: 12px; border: 1px solid var(--border); }
+    .acc-name { font-size: 12px; color: var(--muted); }
+    .acc-bal { font-size: 15px; font-weight: 700; margin-top: 4px; }
+    .trx-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .trx-item:last-child { border-bottom: none; }
+    .trx-title { font-weight: 600; font-size: 14px; }
+    .trx-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .trx-amount { font-weight: 700; font-size: 14px; }
+    .expense { color: var(--danger); }
+    .income { color: var(--primary); }
+    .del-btn { background: none; border: none; color: var(--muted); font-size: 12px; margin-left: 8px; cursor: pointer; }
+    /* Modal */
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); align-items: flex-end; z-index: 50; }
+    .modal.active { display: flex; }
+    .modal-content { background: var(--card); width: 100%; border-radius: 20px 20px 0 0; padding: 20px; border-top: 1px solid var(--border); }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+    .form-group input, .form-group select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: #0f172a; color: var(--text); font-size: 14px; }
+    .status-bar { font-size: 12px; color: var(--muted); text-align: center; margin-top: 8px; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>Saku Harian</h1>
+    <span class="badge" id="deviceBadge">Perangkat: Istri</span>
+  </div>
+
+  <div class="card">
+    <div class="balance-label">Total Saldo Gabungan</div>
+    <div class="balance-amount" id="totalBalance">Rp 0</div>
+    <div class="row">
+      <button class="btn btn-primary" onclick="openTrxModal()">+ Catat Transaksi</button>
+      <button class="btn btn-accent" onclick="syncWithGoogleDrive()">Sinkron Drive</button>
+    </div>
+    <div class="status-bar" id="syncStatus">Belum tersinkron dengan Google Drive</div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <strong style="font-size:14px;">Daftar Rekening</strong>
+      <button class="btn-outline" style="padding:4px 10px; border-radius:8px; font-size:12px;" onclick="openAccModal()">+ Rekening</button>
+    </div>
+    <div class="accounts-grid" id="accountsList"></div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <strong style="font-size:14px;">Riwayat Transaksi</strong>
+      <button class="btn-outline" style="padding:4px 10px; border-radius:8px; font-size:12px;" onclick="openConfigModal()">Atur Drive</button>
+    </div>
+    <div id="transactionsList"></div>
+  </div>
+
+  <!-- Modal Tambah Transaksi -->
+  <div class="modal" id="trxModal">
+    <div class="modal-content">
+      <h3 style="margin-top:0;">Catat Transaksi</h3>
+      <div class="form-group">
+        <label>Jenis</label>
+        <select id="trxType">
+          <option value="expense">Pengeluaran (-)</option>
+          <option value="income">Pemasukan (+)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Rekening</label>
+        <select id="trxAccount"></select>
+      </div>
+      <div class="form-group">
+        <label>Keterangan</label>
+        <input type="text" id="trxTitle" placeholder="Contoh: Belanja sayur / Makan siang" />
+      </div>
+      <div class="form-group">
+        <label>Nominal (Rp)</label>
+        <input type="number" id="trxAmount" placeholder="50000" />
+      </div>
+      <div class="form-group">
+        <label>Kategori</label>
+        <input type="text" id="trxCategory" value="Harian" />
+      </div>
+      <div class="row">
+        <button class="btn btn-outline" onclick="closeModals()">Batal</button>
+        <button class="btn btn-primary" onclick="saveTransaction()">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Tambah Rekening -->
+  <div class="modal" id="accModal">
+    <div class="modal-content">
+      <h3 style="margin-top:0;">Tambah Rekening</h3>
+      <div class="form-group">
+        <label>Nama Rekening / Dompet</label>
+        <input type="text" id="accName" placeholder="Contoh: BCA Istri / Dompet Bersama" />
+      </div>
+      <div class="form-group">
+        <label>Pemilik</label>
+        <select id="accOwner">
+          <option value="Istri">Istri</option>
+          <option value="Suami">Suami</option>
+          <option value="Bersama">Bersama</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Saldo Awal (Rp)</label>
+        <input type="number" id="accInitial" value="0" />
+      </div>
+      <div class="row">
+        <button class="btn btn-outline" onclick="closeModals()">Batal</button>
+        <button class="btn btn-primary" onclick="saveAccount()">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Konfigurasi Google Drive -->
+  <div class="modal" id="configModal">
+    <div class="modal-content">
+      <h3 style="margin-top:0;">Konfigurasi Google Drive</h3>
+      <div class="form-group">
+        <label>Google OAuth Client ID (Web)</label>
+        <input type="text" id="cfgClientId" placeholder="xxxx.apps.googleusercontent.com" />
+      </div>
+      <div class="form-group">
+        <label>File ID sync_istri.json (Tulis)</label>
+        <input type="text" id="cfgFileSelf" placeholder="ID File milik perangkat ini" />
+      </div>
+      <div class="form-group">
+        <label>File ID sync_suami.json (Baca)</label>
+        <input type="text" id="cfgFilePartner" placeholder="ID File milik pasangan" />
+      </div>
+      <div class="row">
+        <button class="btn btn-outline" onclick="closeModals()">Tutup</button>
+        <button class="btn btn-primary" onclick="saveConfig()">Simpan Konfigurasi</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js');
+    }
+
+    const STORAGE_KEY = 'saku_harian_db_v1';
+    const CONFIG_KEY = 'saku_harian_gdrive_cfg';
+
+    function generateUUID() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        const r = Math.random() * 16 | 0;
+        return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+      });
+    }
+
+    function nowISO() {
+      return new Date().toISOString();
+    }
+
+    function loadDB() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) return JSON.parse(raw);
+      const initial = {
+        accounts: [
+          { uuid: 'acc-default-tunai', name: 'Tunai Harian', owner: 'Bersama', initial_balance: 0, updated_at: nowISO(), is_deleted: false }
+        ],
+        transactions: []
+      };
+      saveDB(initial);
+      return initial;
+    }
+
+    function saveDB(db) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+      renderUI();
+    }
+
+    function formatRupiah(num) {
+      return 'Rp ' + Number(num || 0).toLocaleString('id-ID');
+    }
+
+    function renderUI() {
+      const db = loadDB();
+      const activeAcc = db.accounts.filter(a => !a.is_deleted);
+      const activeTrx = db.transactions.filter(t => !t.is_deleted).sort((a, b) => new Date(b.trx_date) - new Date(a.trx_date));
+
+      let grandTotal = 0;
+      const accContainer = document.getElementById('accountsList');
+      const trxAccSelect = document.getElementById('trxAccount');
+      accContainer.innerHTML = '';
+      trxAccSelect.innerHTML = '';
+
+      activeAcc.forEach(acc => {
+        const accTrx = activeTrx.filter(t => t.account_uuid === acc.uuid);
+        const delta = accTrx.reduce((sum, t) => sum + (t.type === 'income' ? Number(t.amount) : -Number(t.amount)), 0);
+        const currentBal = Number(acc.initial_balance) + delta;
+        grandTotal += currentBal;
+
+        accContainer.innerHTML += `
+          <div class="acc-item">
+            <div class="acc-name">${acc.name} (${acc.owner})</div>
+            <div class="acc-bal">${formatRupiah(currentBal)}</div>
+          </div>`;
+
+        trxAccSelect.innerHTML += `<option value="${acc.uuid}">${acc.name}</option>`;
+      });
+
+      document.getElementById('totalBalance').innerText = formatRupiah(grandTotal);
+
+      const trxContainer = document.getElementById('transactionsList');
+      trxContainer.innerHTML = activeTrx.length ? '' : '<div style="color:var(--muted); font-size:13px;">Belum ada transaksi.</div>';
+
+      activeTrx.forEach(trx => {
+        const acc = activeAcc.find(a => a.uuid === trx.account_uuid);
+        const sign = trx.type === 'income' ? '+' : '-';
+        const cls = trx.type === 'income' ? 'income' : 'expense';
+        trxContainer.innerHTML += `
+          <div class="trx-item">
+            <div>
+              <div class="trx-title">${trx.title}</div>
+              <div class="trx-meta">${acc ? acc.name : 'Rekening'} • ${trx.category} • oleh ${trx.recorded_by}</div>
+            </div>
+            <div>
+              <span class="trx-amount ${cls}">${sign}${formatRupiah(trx.amount)}</span>
+              <button class="del-btn" onclick="deleteTransaction('${trx.uuid}')">✕</button>
+            </div>
+          </div>`;
+      });
+    }
+
+    function openTrxModal() { document.getElementById('trxModal').classList.add('active'); }
+    function openAccModal() { document.getElementById('accModal').classList.add('active'); }
+    function openConfigModal() {
+      const cfg = JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}');
+      document.getElementById('cfgClientId').value = cfg.clientId || '';
+      document.getElementById('cfgFileSelf').value = cfg.fileSelf || '';
+      document.getElementById('cfgFilePartner').value = cfg.filePartner || '';
+      document.getElementById('configModal').classList.add('active');
+    }
+    function closeModals() {
+      document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
+    }
+
+    function saveTransaction() {
+      const db = loadDB();
+      const title = document.getElementById('trxTitle').value.trim();
+      const amount = Number(document.getElementById('trxAmount').value);
+      if (!title || !amount) return alert('Isi keterangan dan nominal dulu');
+
+      db.transactions.push({
+        uuid: generateUUID(),
+        account_uuid: document.getElementById('trxAccount').value,
+        title,
+        amount,
+        type: document.getElementById('trxType').value,
+        category: document.getElementById('trxCategory').value || 'Harian',
+        recorded_by: 'Istri',
+        trx_date: nowISO(),
+        updated_at: nowISO(),
+        is_deleted: false
+      });
+
+      saveDB(db);
+      document.getElementById('trxTitle').value = '';
+      document.getElementById('trxAmount').value = '';
+      closeModals();
+    }
+
+    function deleteTransaction(uuid) {
+      if (!confirm('Hapus transaksi ini?')) return;
+      const db = loadDB();
+      const item = db.transactions.find(t => t.uuid === uuid);
+      if (item) {
+        item.is_deleted = true;
+        item.updated_at = nowISO();
+        saveDB(db);
+      }
+    }
+
+    function saveAccount() {
+      const db = loadDB();
+      const name = document.getElementById('accName').value.trim();
+      if (!name) return alert('Nama rekening wajib diisi');
+
+      db.accounts.push({
+        uuid: generateUUID(),
+        name,
+        owner: document.getElementById('accOwner').value,
+        initial_balance: Number(document.getElementById('accInitial').value || 0),
+        updated_at: nowISO(),
+        is_deleted: false
+      });
+
+      saveDB(db);
+      document.getElementById('accName').value = '';
+      closeModals();
+    }
+
+    function saveConfig() {
+      const cfg = {
+        clientId: document.getElementById('cfgClientId').value.trim(),
+        fileSelf: document.getElementById('cfgFileSelf').value.trim(),
+        filePartner: document.getElementById('cfgFilePartner').value.trim()
+      };
+      localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg));
+      closeModals();
+      alert('Konfigurasi Google Drive tersimpan!');
+    }
+
+    // Smart Merge Engine (Identik dengan logika di Android)
+    function mergeArrays(localArr, remoteArr) {
+      const map = new Map();
+      localArr.forEach(item => map.set(item.uuid, item));
+      remoteArr.forEach(remote => {
+        const local = map.get(remote.uuid);
+        if (!local || new Date(remote.updated_at) > new Date(local.updated_at)) {
+          map.set(remote.uuid, remote);
+        }
+      });
+      return Array.from(map.values());
+    }
+
+    let accessToken = null;
+    function syncWithGoogleDrive() {
+      const cfg = JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}');
+      if (!cfg.clientId || !cfg.fileSelf || !cfg.filePartner) {
+        openConfigModal();
+        return alert('Isi Client ID dan File ID Google Drive dulu ya.');
+      }
+
+      const tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: cfg.clientId,
+        scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
+        callback: async (resp) => {
+          if (resp.error) return alert('Gagal login Google: ' + resp.error);
+          accessToken = resp.access_token;
+          await runSyncProcess(cfg);
+        }
+      });
+      tokenClient.requestAccessToken();
+    }
+
+    async function runSyncProcess(cfg) {
+      const statusEl = document.getElementById('syncStatus');
+      statusEl.innerText = 'Sedang menyinkronkan...';
+      try {
+        // 1. Download data pasangan (sync_suami.json)
+        const resPartner = await fetch(`https://www.googleapis.com/drive/v3/files/${cfg.filePartner}?alt=media`, {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        const partnerData = resPartner.ok ? await resPartner.json() : { accounts: [], transactions: [] };
+
+        // 2. Gabungkan (Merge) dengan database lokal
+        const localDB = loadDB();
+        const mergedDB = {
+          accounts: mergeArrays(localDB.accounts, partnerData.accounts || []),
+          transactions: mergeArrays(localDB.transactions, partnerData.transactions || [])
+        };
+        saveDB(mergedDB);
+
+        // 3. Upload hasil terbaru ke file sendiri (sync_istri.json)
+        const payload = {
+          device_id: 'pwa_istri',
+          last_synced_at: nowISO(),
+          accounts: mergedDB.accounts,
+          transactions: mergedDB.transactions
+        };
+
+        await fetch(`https://www.googleapis.com/upload/drive/v3/files/${cfg.fileSelf}?uploadType=media`, {
+          method: 'PATCH',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        statusEl.innerText = 'Tersinkron: ' + new Date().toLocaleTimeString('id-ID');
+      } catch (err) {
+        statusEl.innerText = 'Gagal sinkron, cek koneksi / File ID';
+      }
+    }
+
+    renderUI();
+  </script>
+</body>
+</html>
