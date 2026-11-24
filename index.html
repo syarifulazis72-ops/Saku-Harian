@@ -2,839 +2,1206 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0F766E" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>SakuHarian Pro</title>
+  <meta name="apple-mobile-web-app-title" content="SakuHarian" />
   <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <title>SakuHarian - Keuangan Bersama</title>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     :root {
-      --bg: #f1f5f4;
-      --card: #ffffff;
-      --header-start: #0f4c3a;
-      --header-end: #146c53;
-      --primary: #0f6b52;
-      --primary-light: #e6f4ef;
-      --text: #111827;
-      --muted: #6b7280;
-      --border: #e5e7eb;
-      --green: #10b981;
-      --red: #ef4444;
-      --red-bg: #fee2e2;
+      --primary: #0F766E;
+      --primary-dark: #064E3B;
+      --primary-soft: #CCFBF1;
+      --bg: #F3F6F8;
+      --card: #FFFFFF;
+      --text: #0F172A;
+      --muted: #64748B;
+      --border: #E2E8F0;
+      --income: #059669;
+      --income-bg: #D1FAE5;
+      --expense: #DC2626;
+      --expense-bg: #FEE2E2;
     }
-    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { margin: 0; background: var(--bg); color: var(--text); padding-bottom: 95px; }
-
-    /* Header Hijau Emerald */
-    .hero {
-      background: linear-gradient(145deg, var(--header-start), var(--header-end));
-      color: #fff;
-      padding: calc(16px + env(safe-area-inset-top)) 16px 22px;
-      border-radius: 0 0 26px 26px;
-      box-shadow: 0 6px 18px rgba(15, 76, 58, 0.18);
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding-bottom: 96px;
     }
-    .hero-top { display: flex; justify-content: space-between; align-items: flex-start; }
-    .hero-title { font-size: 20px; font-weight: 700; margin: 0; }
-    .hero-sub { font-size: 11px; opacity: 0.85; margin-top: 2px; }
-    .hero-actions { display: flex; gap: 8px; align-items: center; }
-    .pill-glass {
-      background: rgba(255, 255, 255, 0.16);
-      border: 1px solid rgba(255, 255, 255, 0.25);
+    .header {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
       color: #fff;
+      padding: calc(env(safe-area-inset-top, 16px) + 16px) 18px 22px;
+      border-bottom-left-radius: 24px;
+      border-bottom-right-radius: 24px;
+      box-shadow: 0 8px 24px rgba(15, 118, 110, 0.22);
+    }
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .brand h1 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
+    .brand p { margin: 2px 0 0; font-size: 12px; opacity: 0.85; }
+    .header-actions { display: flex; gap: 8px; }
+    .icon-btn {
+      background: rgba(255,255,255,0.16);
+      border: 1px solid rgba(255,255,255,0.24);
+      color: #fff;
+      border-radius: 12px;
+      padding: 8px 12px;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .icon-btn:active { transform: scale(0.97); }
+    .balance-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; opacity: 0.82; }
+    .balance-val { font-size: 30px; font-weight: 800; margin: 4px 0 14px; letter-spacing: -0.5px; }
+    .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .sum-box { background: rgba(255,255,255,0.13); border-radius: 14px; padding: 10px 12px; }
+    .sum-box span { display: block; font-size: 11px; opacity: 0.85; }
+    .sum-box strong { display: block; font-size: 15px; margin-top: 3px; }
+    .sync-pill {
+      margin-top: 12px;
+      background: rgba(0,0,0,0.18);
+      border-radius: 10px;
+      padding: 7px 11px;
+      font-size: 11.5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .container { padding: 16px; max-width: 560px; margin: 0 auto; }
+    .section-head { display: flex; justify-content: space-between; align-items: center; margin: 6px 0 10px; }
+    .section-head h2 { margin: 0; font-size: 15px; font-weight: 700; }
+    .link-btn { background: none; border: none; color: var(--primary); font-weight: 700; font-size: 13px; cursor: pointer; padding: 4px 6px; }
+    .accounts-row { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: none; }
+    .accounts-row::-webkit-scrollbar { display: none; }
+    .acc-card {
+      min-width: 154px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 15px;
+      padding: 12px 14px;
+      flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(15,23,42,0.03);
+    }
+    .acc-owner {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
       border-radius: 99px;
-      padding: 6px 12px;
-      font-size: 12px;
+      background: var(--primary-soft);
+      color: var(--primary-dark);
+      margin-bottom: 6px;
+    }
+    .acc-owner.suami { background: #E0E7FF; color: #3730A3; }
+    .acc-name { font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .acc-bal { font-size: 16px; font-weight: 800; margin-top: 4px; color: var(--text); }
+    .filter-bar { display: flex; gap: 8px; margin: 14px 0 10px; }
+    .chip {
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--muted);
+      border-radius: 99px;
+      padding: 6px 13px;
+      font-size: 12.5px;
       font-weight: 600;
       cursor: pointer;
     }
-    .icon-circle {
-      width: 32px; height: 32px; border-radius: 50%;
-      background: rgba(255, 255, 255, 0.16);
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      color: #fff; font-weight: 700; cursor: pointer;
+    .chip.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .search-input {
+      width: 100%;
+      padding: 10px 13px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      font-size: 13.5px;
+      margin-bottom: 10px;
+      outline: none;
     }
-    .balance-row { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; }
-    .balance-cap { font-size: 11px; letter-spacing: 0.6px; opacity: 0.85; font-weight: 600; }
-    .balance-val { font-size: 28px; font-weight: 800; margin: 4px 0 14px; letter-spacing: -0.5px; }
-    .summary-box {
-      display: grid; grid-template-columns: 1fr 1fr;
-      background: rgba(255, 255, 255, 0.12);
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      border-radius: 14px; padding: 10px 12px;
+    .tx-list { display: flex; flex-direction: column; gap: 9px; }
+    .tx-item {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
     }
-    .summary-col:first-child { border-right: 1px solid rgba(255, 255, 255, 0.2); padding-right: 10px; }
-    .summary-col:last-child { padding-left: 12px; }
-    .sum-label { font-size: 11px; opacity: 0.85; }
-    .sum-val { font-size: 14px; font-weight: 700; margin-top: 3px; }
-
-    /* Container */
-    .container { padding: 14px 16px 0; }
-    .sec-head { display: flex; justify-content: space-between; align-items: center; margin: 6px 0 10px; }
-    .sec-title { font-size: 15px; font-weight: 700; color: var(--text); }
-    .sec-link { font-size: 12px; font-weight: 700; color: var(--primary); background: none; border: none; cursor: pointer; }
-
-    /* Horizontal Accounts */
-    .acc-scroll { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: none; }
-    .acc-scroll::-webkit-scrollbar { display: none; }
-    .acc-card {
-      min-width: 175px; background: var(--card); border-radius: 16px;
-      padding: 14px; border: 1px solid var(--border);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    .tx-left { min-width: 0; flex: 1; }
+    .tx-title { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tx-meta { font-size: 11.5px; color: var(--muted); margin-top: 3px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .badge-who { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 6px; background: #F1F5F9; color: #334155; }
+    .tx-amt { font-size: 14.5px; font-weight: 800; white-space: nowrap; }
+    .tx-amt.inc { color: var(--income); }
+    .tx-amt.exp { color: var(--expense); }
+    .empty-box {
+      text-align: center;
+      padding: 32px 16px;
+      color: var(--muted);
+      background: var(--card);
+      border-radius: 16px;
+      border: 1px dashed var(--border);
+      font-size: 13.5px;
     }
-    .acc-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-    .acc-badge {
-      width: 34px; height: 34px; border-radius: 10px;
-      background: var(--primary-light); color: var(--primary);
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 800; font-size: 12px;
-    }
-    .acc-type { font-size: 10px; color: var(--muted); font-weight: 700; text-transform: uppercase; }
-    .acc-name { font-size: 13px; font-weight: 700; color: var(--text); }
-    .acc-bal { font-size: 15px; font-weight: 800; color: var(--primary); margin-top: 3px; }
-
-    /* 4 Quick Menu Tiles */
-    .quick-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 12px 0; }
-    .q-tile {
-      background: var(--card); border-radius: 14px; padding: 10px 6px;
-      text-align: center; border: 1px solid var(--border); cursor: pointer;
-    }
-    .q-title { font-size: 12px; font-weight: 700; }
-    .q-sub { font-size: 10px; color: var(--muted); margin-top: 2px; }
-
-    /* White Card */
-    .card {
-      background: var(--card); border-radius: 18px; padding: 16px;
-      margin-bottom: 14px; border: 1px solid var(--border);
-      box-shadow: 0 2px 10px rgba(0,0,0,0.03);
-    }
-    .safe-banner {
-      background: var(--primary-light); color: var(--primary);
-      padding: 10px 12px; border-radius: 12px; font-size: 12px;
-      font-weight: 600; margin: 10px 0;
-    }
-    .limit-box { background: #fafafa; border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; }
-    .limit-top { display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; }
-    .progress-track { height: 6px; background: #e5e7eb; border-radius: 99px; overflow: hidden; margin: 8px 0 6px; }
-    .progress-fill { height: 100%; background: var(--primary); border-radius: 99px; transition: width 0.3s; }
-    .limit-note { font-size: 11px; color: var(--muted); }
-
-    /* Bar Chart 7 Hari */
-    .chart-head { display: flex; justify-content: space-between; align-items: center; margin: 16px 0 10px; }
-    .bar-chart { display: flex; align-items: flex-end; justify-content: space-between; height: 125px; padding-top: 18px; border-bottom: 1px solid var(--border); }
-    .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-    .bar-pair { display: flex; align-items: flex-end; gap: 3px; height: 85px; }
-    .bar { width: 7px; border-radius: 4px 4px 0 0; min-height: 2px; }
-    .bar-in { background: var(--green); }
-    .bar-out { background: var(--red); }
-    .bar-lbl { font-size: 10px; color: var(--muted); margin-top: 4px; }
-
-    /* Donut & Category */
-    .donut-row { display: flex; align-items: center; gap: 16px; margin-top: 16px; }
-    .donut {
-      width: 96px; height: 96px; border-radius: 50%;
-      background: conic-gradient(var(--primary) 0% 100%);
-      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-    }
-    .donut-hole {
-      width: 64px; height: 64px; border-radius: 50%; background: #fff;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      font-size: 10px; color: var(--muted);
-    }
-    .donut-hole strong { font-size: 13px; color: var(--text); }
-    .cat-list { flex: 1; font-size: 12px; }
-    .cat-item { display: flex; justify-content: space-between; margin-bottom: 6px; }
-
-    /* Search & Filter Chips */
-    .search-box {
-      width: 100%; padding: 11px 14px; border-radius: 12px;
-      border: 1px solid var(--border); background: #fff; font-size: 13px; margin-bottom: 10px;
-    }
-    .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; }
-    .chips::-webkit-scrollbar { display: none; }
-    .chip {
-      padding: 6px 14px; border-radius: 10px; border: 1px solid var(--border);
-      background: #fff; font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; cursor: pointer;
-    }
-    .chip.active { background: var(--primary-light); color: var(--primary); border-color: #a7f3d0; }
-
-    .day-banner {
-      background: var(--red-bg); color: #b91c1c; font-size: 11px; font-weight: 700;
-      padding: 8px 12px; border-radius: 10px; display: flex; justify-content: space-between; margin: 8px 0;
-    }
-    .day-banner.safe { background: var(--primary-light); color: var(--primary); }
-
-    /* Transaction Item */
-    .trx-card {
-      background: #fff; border-radius: 14px; padding: 12px; margin-bottom: 8px;
-      border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;
-    }
-    .trx-left { display: flex; align-items: center; gap: 10px; }
-    .trx-title { font-size: 13px; font-weight: 700; }
-    .trx-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
-    .trx-right { display: flex; align-items: center; gap: 8px; }
-    .trx-amt { font-size: 13px; font-weight: 800; }
-    .amt-out { color: var(--red); }
-    .amt-in { color: var(--green); }
-    .trash-btn { background: none; border: none; color: #9ca3af; font-size: 15px; cursor: pointer; }
-
-    /* Floating Action Button */
     .fab {
-      position: fixed; right: 18px; bottom: 22px;
-      width: 56px; height: 56px; border-radius: 18px;
-      background: var(--primary); color: #fff; border: none;
-      font-size: 28px; font-weight: 400; box-shadow: 0 8px 20px rgba(15, 107, 82, 0.35);
-      cursor: pointer; z-index: 40;
+      position: fixed;
+      right: 18px;
+      bottom: calc(env(safe-area-inset-bottom, 16px) + 18px);
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 99px;
+      padding: 14px 20px;
+      font-size: 14.5px;
+      font-weight: 700;
+      box-shadow: 0 10px 24px rgba(15, 118, 110, 0.35);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 40;
     }
-
-    /* Modal */
-    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); align-items: flex-end; z-index: 60; }
-    .modal.active { display: flex; }
-    .modal-sheet {
-      background: #fff; width: 100%; border-radius: 22px 22px 0 0; padding: 20px;
-      max-height: 88vh; overflow-y: auto;
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.55);
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      z-index: 100;
     }
-    .fg { margin-bottom: 12px; }
-    .fg label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
-    .fg input, .fg select {
-      width: 100%; padding: 11px; border-radius: 10px; border: 1px solid var(--border); font-size: 14px;
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: #fff;
+      width: 100%;
+      max-width: 540px;
+      border-top-left-radius: 24px;
+      border-top-right-radius: 24px;
+      padding: 20px 18px calc(env(safe-area-inset-bottom, 16px) + 20px);
+      max-height: 92vh;
+      overflow-y: auto;
+      animation: slideUp 0.2s ease-out;
     }
-    .btn-row { display: flex; gap: 10px; margin-top: 14px; }
-    .btn { flex: 1; padding: 12px; border-radius: 12px; border: none; font-weight: 700; font-size: 14px; cursor: pointer; }
-    .btn-save { background: var(--primary); color: #fff; }
-    .btn-cancel { background: #f3f4f6; color: var(--text); }
-    .sync-toast { font-size: 11px; color: rgba(255,255,255,0.85); margin-top: 8px; text-align: right; }
+    @keyframes slideUp {
+      from { transform: translateY(30px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .modal h3 { margin: 0 0 10px; font-size: 18px; font-weight: 800; }
+    .status-card {
+      background: #F8FAFC;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-size: 13px;
+      line-height: 1.55;
+      margin-bottom: 14px;
+    }
+    .field { margin-bottom: 12px; }
+    .field label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 5px; }
+    .field input, .field select {
+      width: 100%;
+      padding: 11px 12px;
+      border-radius: 12px;
+      border: 1.5px solid var(--border);
+      font-size: 14px;
+      background: #fff;
+      color: var(--text);
+      outline: none;
+    }
+    .field input:focus, .field select:focus { border-color: var(--primary); }
+    .type-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+    .type-btn {
+      padding: 10px;
+      border-radius: 12px;
+      border: 1.5px solid var(--border);
+      background: #fff;
+      font-weight: 700;
+      font-size: 13.5px;
+      cursor: pointer;
+    }
+    .type-btn.active-exp { background: var(--expense-bg); border-color: var(--expense); color: var(--expense); }
+    .type-btn.active-inc { background: var(--income-bg); border-color: var(--income); color: var(--income); }
+    .btn-primary {
+      width: 100%;
+      padding: 13px;
+      border-radius: 12px;
+      border: none;
+      background: var(--primary);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 6px;
+    }
+    .btn-secondary {
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1.5px solid var(--border);
+      background: #F1F5F9;
+      color: var(--text);
+      font-size: 13.5px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+    .btn-danger {
+      width: 100%;
+      padding: 11px;
+      border-radius: 12px;
+      border: none;
+      background: var(--expense-bg);
+      color: var(--expense);
+      font-size: 13.5px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+    .adv-box {
+      display: none;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px dashed var(--border);
+    }
+    .adv-box.open { display: block; }
+    .toast {
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #0F172A;
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 99px;
+      font-size: 13px;
+      font-weight: 600;
+      z-index: 200;
+      display: none;
+      max-width: 90vw;
+      text-align: center;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+    }
   </style>
 </head>
 <body>
+  <div id="toast" class="toast"></div>
 
-  <!-- HERO HEADER -->
-  <div class="hero">
-    <div class="hero-top">
-      <div>
-        <h1 class="hero-title">SakuHarian Pro</h1>
-        <div class="hero-sub">Manajemen Keuangan & Aset Cerdas • Istri</div>
+  <header class="header">
+    <div class="header-top">
+      <div class="brand">
+        <h1>SakuHarian</h1>
+        <p>Dompet Bersama Suami &amp; Istri</p>
       </div>
-      <div class="hero-actions">
-        <button class="pill-glass" onclick="syncWithGoogleDrive()">↻ Sinkron</button>
-        <button class="icon-circle" onclick="openConfigModal()">⋮</button>
+      <div class="header-actions">
+        <button class="icon-btn" onclick="triggerDriveSync(false)" id="btnQuickSync">↻ Sync</button>
+        <button class="icon-btn" onclick="openDriveModal()">⚙ Drive</button>
       </div>
     </div>
-
-    <div class="balance-row">
-      <span class="balance-cap">TOTAL SALDO BERSIH</span>
-      <button class="pill-glass" style="padding:4px 10px; font-size:11px;" id="toggleEyeBtn" onclick="toggleHideBalance()">Sembunyikan Saldo</button>
-    </div>
+    <div class="balance-label">Total Saldo Gabungan</div>
     <div class="balance-val" id="totalBalance">Rp 0</div>
-
-    <div class="summary-box">
-      <div class="summary-col">
-        <div class="sum-label">↓ Pemasukan Bulan Ini</div>
-        <div class="sum-val" id="monthIncome">Rp 0</div>
+    <div class="summary-grid">
+      <div class="sum-box">
+        <span>Pemasukan Bulan Ini</span>
+        <strong id="monthIncome">Rp 0</strong>
       </div>
-      <div class="summary-col">
-        <div class="sum-label">↑ Pengeluaran Bulan Ini</div>
-        <div class="sum-val" id="monthExpense">Rp 0</div>
+      <div class="sum-box">
+        <span>Pengeluaran Bulan Ini</span>
+        <strong id="monthExpense">Rp 0</strong>
       </div>
     </div>
-    <div class="sync-toast" id="syncStatus">Status Drive: Belum tersinkron</div>
+    <div class="sync-pill">
+      <span id="headerSyncStatus">Belum terhubung ke Google Drive</span>
+      <strong id="headerSyncBadge" style="color:#A7F3D0;">1-Tap Drive</strong>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="section-head">
+      <h2>Dompet &amp; Rekening</h2>
+      <button class="link-btn" onclick="openAccountModal()">+ Tambah Dompet</button>
+    </div>
+    <div class="accounts-row" id="accountsRow"></div>
+
+    <div class="filter-bar">
+      <button class="chip active" data-filter="ALL" onclick="setFilter('ALL', this)">Semua</button>
+      <button class="chip" data-filter="Istri" onclick="setFilter('Istri', this)">Catatan Istri</button>
+      <button class="chip" data-filter="Suami" onclick="setFilter('Suami', this)">Catatan Suami</button>
+    </div>
+
+    <input type="search" class="search-input" id="searchInput" placeholder="Cari transaksi atau kategori..." oninput="renderAll()" />
+    <div class="tx-list" id="txList"></div>
+  </main>
+
+  <button class="fab" onclick="openTxModal()">+ Catat Transaksi</button>
+
+  <!-- Modal Pengaturan Google Drive Sync (Persis seperti Android!) -->
+  <div class="modal-backdrop" id="driveModal" onclick="closeModalOnBg(event, 'driveModal')">
+    <div class="modal">
+      <h3>Pengaturan Google Drive Sync</h3>
+      <div class="status-card" id="driveStatusCard">
+        File Istri: Belum dibuat<br/>
+        File Suami: sync_suami.json ✓<br/>
+        Terakhir sync: Belum pernah
+      </div>
+
+      <button class="btn-primary" onclick="oneTapCreateAndConnectDrive()">
+        1. HUBUNGKAN &amp; BUAT SYNC_ISTRI.JSON DI DRIVE
+      </button>
+
+      <button class="btn-secondary" onclick="copyIstriFileIdForAndroid()">
+        2. SALIN FILE ID ISTRI (UNTUK ANDROID SUAMI)
+      </button>
+
+      <button class="btn-secondary" onclick="triggerDriveSync(false)">
+        ↻ SINKRONKAN SEKARANG
+      </button>
+
+      <button class="btn-secondary" id="btnToggleAdv" onclick="toggleAdvancedDrive()">
+        PENGATURAN LANJUTAN (ID &amp; CLIENT ID) ▾
+      </button>
+
+      <div class="adv-box" id="advDriveBox">
+        <div class="field">
+          <label>File ID sync_istri.json (Otomatis Terisi)</label>
+          <input type="text" id="inputIstriFileId" placeholder="Otomatis terisi saat klik tombol 1" />
+        </div>
+        <div class="field">
+          <label>File ID sync_suami.json (Sudah Terisi)</label>
+          <input type="text" id="inputSuamiFileId" />
+        </div>
+        <div class="field">
+          <label>Google OAuth Client ID (Sudah Terisi)</label>
+          <input type="text" id="inputClientId" />
+        </div>
+        <button class="btn-primary" onclick="saveAdvancedDriveConfig()">Simpan Perubahan ID</button>
+      </div>
+
+      <button class="btn-secondary" onclick="closeModal('driveModal')">Tutup</button>
+    </div>
   </div>
 
-  <div class="container">
-    <!-- REKENING & E-WALLET -->
-    <div class="sec-head">
-      <span class="sec-title">Rekening & E-Wallet</span>
-      <button class="sec-link" onclick="openAccModal()">+ Tambah Akun</button>
-    </div>
-    <div class="acc-scroll" id="accountsList"></div>
-
-    <!-- 4 MENU RINGKAS -->
-    <div class="quick-grid">
-      <div class="q-tile" onclick="openTransferModal()">
-        <div class="q-title" style="color:#0f6b52;">Pindah</div>
-        <div class="q-sub">Antar Akun</div>
+  <!-- Modal Transaksi -->
+  <div class="modal-backdrop" id="txModal" onclick="closeModalOnBg(event, 'txModal')">
+    <div class="modal">
+      <h3 id="txModalTitle">Catat Transaksi</h3>
+      <input type="hidden" id="editTxUuid" />
+      <div class="type-switch">
+        <button type="button" class="type-btn active-exp" id="btnTypeExp" onclick="selectTxType('EXPENSE')">Pengeluaran</button>
+        <button type="button" class="type-btn" id="btnTypeInc" onclick="selectTxType('INCOME')">Pemasukan</button>
       </div>
-      <div class="q-tile" onclick="openBudgetModal()">
-        <div class="q-title" style="color:#2563eb;">Batas</div>
-        <div class="q-sub" id="dailyLimitBadge">Rp 50rb/hr</div>
+      <div class="field">
+        <label>Dompet / Rekening</label>
+        <select id="txAccountSelect"></select>
       </div>
-      <div class="q-tile" onclick="syncWithGoogleDrive()">
-        <div class="q-title" style="color:#d97706;">Drive</div>
-        <div class="q-sub">Sync Suami</div>
+      <div class="field">
+        <label>Keterangan</label>
+        <input type="text" id="txTitle" placeholder="Contoh: Belanja sayur, Bahan dimsum..." />
       </div>
-      <div class="q-tile" onclick="openConfigModal()">
-        <div class="q-title" style="color:#7c3aed;">Atur ID</div>
-        <div class="q-sub">Koneksi</div>
-      </div>
-    </div>
-
-    <!-- ANALISIS CERDAS & ANGGARAN -->
-    <div class="card">
-      <div class="sec-head" style="margin-top:0;">
-        <span class="sec-title">Analisis Cerdas & Anggaran</span>
-        <button class="sec-link" onclick="openBudgetModal()">Atur Anggaran</button>
-      </div>
-
-      <div class="safe-banner" id="safeSpendBanner">
-        Rasio Tabungan: 0% • Aman belanja/hari: Rp 0
-      </div>
-
-      <div class="limit-box">
-        <div class="limit-top">
-          <span id="limitTitle">Batas Harian: Rp 50.000</span>
-          <span id="limitPct" style="color:var(--primary);">0%</span>
-        </div>
-        <div class="progress-track">
-          <div class="progress-fill" id="limitBar" style="width:0%;"></div>
-        </div>
-        <div class="limit-note" id="limitNote">Sisa kuota hari ini: Rp 50.000</div>
-      </div>
-
-      <div class="chart-head">
-        <strong style="font-size:13px;">Tren Arus Kas (7 Hari Terakhir)</strong>
-      </div>
-      <div class="bar-chart" id="barChart"></div>
-
-      <div class="donut-row">
-        <div class="donut" id="donutChart">
-          <div class="donut-hole">
-            <span>Kategori</span>
-            <strong id="catCount">0 Pos</strong>
-          </div>
-        </div>
-        <div class="cat-list" id="catList"></div>
-      </div>
-    </div>
-
-    <!-- MUTASI: SEMUA AKUN -->
-    <div class="sec-head">
-      <span class="sec-title">Mutasi: Semua Akun</span>
-    </div>
-    <input type="text" class="search-box" id="searchInput" placeholder="Cari transaksi, kategori, atau catatan..." oninput="renderUI()" />
-
-    <div class="chips">
-      <button class="chip active" onclick="setFilter('all', this)">Semua</button>
-      <button class="chip" onclick="setFilter('today', this)">Hari Ini</button>
-      <button class="chip" onclick="setFilter('week', this)">Minggu Ini</button>
-      <button class="chip" onclick="setFilter('month', this)">Bulan Ini</button>
-    </div>
-
-    <div class="day-banner safe" id="todaySummaryBanner">
-      <span id="todayDateLabel">Hari Ini</span>
-      <span id="todayOutLabel">Keluar: Rp 0</span>
-    </div>
-
-    <div id="transactionsList"></div>
-  </div>
-
-  <!-- FAB + -->
-  <button class="fab" onclick="openTrxModal()">+</button>
-
-  <!-- MODAL CATAT TRANSAKSI -->
-  <div class="modal" id="trxModal">
-    <div class="modal-sheet">
-      <h3 style="margin-top:0;">Catat Transaksi Baru</h3>
-      <div class="fg">
-        <label>Jenis Transaksi</label>
-        <select id="trxType">
-          <option value="expense">Pengeluaran (-)</option>
-          <option value="income">Pemasukan (+)</option>
-        </select>
-      </div>
-      <div class="fg">
-        <label>Rekening / E-Wallet</label>
-        <select id="trxAccount"></select>
-      </div>
-      <div class="fg">
-        <label>Judul / Keterangan</label>
-        <input type="text" id="trxTitle" placeholder="Contoh: Belanja dapur / Kopi" />
-      </div>
-      <div class="fg">
+      <div class="field">
         <label>Nominal (Rp)</label>
-        <input type="number" id="trxAmount" placeholder="50000" />
+        <input type="number" id="txAmount" inputmode="numeric" placeholder="50000" />
       </div>
-      <div class="fg">
+      <div class="field">
         <label>Kategori</label>
-        <select id="trxCategory">
-          <option value="Makan & Minum">Makan & Minum</option>
+        <select id="txCategory">
+          <option value="Makan & Minum">Makan &amp; Minum</option>
           <option value="Belanja Harian">Belanja Harian</option>
+          <option value="Usaha Atria.food">Usaha Atria.food</option>
           <option value="Transportasi">Transportasi</option>
-          <option value="Tabungan & Target">Tabungan & Target</option>
-          <option value="Tagihan & Utilitas">Tagihan & Utilitas</option>
+          <option value="Tagihan & Utilitas">Tagihan &amp; Utilitas</option>
+          <option value="Kesehatan & Pribadi">Kesehatan &amp; Pribadi</option>
+          <option value="Gaji / Pemasukan">Gaji / Pemasukan</option>
           <option value="Lainnya">Lainnya</option>
         </select>
       </div>
-      <div class="btn-row">
-        <button class="btn btn-cancel" onclick="closeModals()">Batal</button>
-        <button class="btn btn-save" onclick="saveTransaction()">Simpan</button>
+      <div class="field">
+        <label>Tanggal &amp; Waktu</label>
+        <input type="datetime-local" id="txDateTime" />
       </div>
+      <button class="btn-primary" onclick="saveTransaction()">Simpan Transaksi</button>
+      <button class="btn-danger" id="btnDeleteTx" style="display:none;" onclick="deleteCurrentTx()">Hapus Transaksi</button>
+      <button class="btn-secondary" onclick="closeModal('txModal')">Batal</button>
     </div>
   </div>
 
-  <!-- MODAL TAMBAH REKENING -->
-  <div class="modal" id="accModal">
-    <div class="modal-sheet">
-      <h3 style="margin-top:0;">Tambah Rekening / E-Wallet</h3>
-      <div class="fg">
-        <label>Nama Bank / E-Wallet</label>
-        <input type="text" id="accName" placeholder="Contoh: Bank BSI / Bank Mandiri / GoPay" />
+  <!-- Modal Tambah Dompet -->
+  <div class="modal-backdrop" id="accModal" onclick="closeModalOnBg(event, 'accModal')">
+    <div class="modal">
+      <h3>Tambah Dompet Istri</h3>
+      <div class="field">
+        <label>Nama Dompet / Bank</label>
+        <input type="text" id="accName" placeholder="Contoh: Dompet Harian, BCA Istri, ShopeePay" />
       </div>
-      <div class="fg">
+      <div class="field">
         <label>Jenis</label>
         <select id="accType">
-          <option value="BANK">BANK</option>
-          <option value="BANK SYARIAH">BANK SYARIAH</option>
-          <option value="E-WALLET">E-WALLET</option>
-          <option value="TUNAI">TUNAI</option>
+          <option value="CASH">Tunai (Cash)</option>
+          <option value="BANK">Rekening Bank</option>
+          <option value="EWALLET">E-Wallet</option>
         </select>
       </div>
-      <div class="fg">
-        <label>Pemilik</label>
-        <select id="accOwner">
-          <option value="Istri">Istri</option>
-          <option value="Suami">Suami</option>
-          <option value="Bersama">Bersama</option>
-        </select>
-      </div>
-      <div class="fg">
+      <div class="field">
         <label>Saldo Awal (Rp)</label>
-        <input type="number" id="accInitial" value="0" />
+        <input type="number" id="accBalance" inputmode="numeric" placeholder="0" />
       </div>
-      <div class="btn-row">
-        <button class="btn btn-cancel" onclick="closeModals()">Batal</button>
-        <button class="btn btn-save" onclick="saveAccount()">Simpan</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL PINDAH SALDO -->
-  <div class="modal" id="transferModal">
-    <div class="modal-sheet">
-      <h3 style="margin-top:0;">Pindah Saldo Antar Akun</h3>
-      <div class="fg"><label>Dari Rekening</label><select id="tfFrom"></select></div>
-      <div class="fg"><label>Ke Rekening</label><select id="tfTo"></select></div>
-      <div class="fg"><label>Nominal (Rp)</label><input type="number" id="tfAmount" placeholder="100000" /></div>
-      <div class="btn-row">
-        <button class="btn btn-cancel" onclick="closeModals()">Batal</button>
-        <button class="btn btn-save" onclick="saveTransfer()">Pindahkan</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL ATUR ANGGARAN -->
-  <div class="modal" id="budgetModal">
-    <div class="modal-sheet">
-      <h3 style="margin-top:0;">Atur Batas Harian</h3>
-      <div class="fg">
-        <label>Batas Pengeluaran Harian (Rp)</label>
-        <input type="number" id="cfgDailyLimit" placeholder="50000" />
-      </div>
-      <div class="btn-row">
-        <button class="btn btn-cancel" onclick="closeModals()">Batal</button>
-        <button class="btn btn-save" onclick="saveBudget()">Simpan</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL KONFIGURASI GOOGLE DRIVE -->
-  <div class="modal" id="configModal">
-    <div class="modal-sheet">
-      <h3 style="margin-top:0;">Koneksi Google Drive (Sync Suami)</h3>
-      <div class="fg">
-        <label>Google OAuth Client ID (Web)</label>
-        <input type="text" id="cfgClientId" placeholder="xxxx.apps.googleusercontent.com" />
-      </div>
-      <div class="fg">
-        <label>File ID sync_istri.json (Tulis)</label>
-        <input type="text" id="cfgFileSelf" placeholder="ID file milik Istri" />
-      </div>
-      <div class="fg">
-        <label>File ID sync_suami.json (Baca)</label>
-        <input type="text" id="cfgFilePartner" placeholder="ID file milik Suami" />
-      </div>
-      <div class="btn-row">
-        <button class="btn btn-cancel" onclick="closeModals()">Tutup</button>
-        <button class="btn btn-save" onclick="saveConfig()">Simpan</button>
-      </div>
+      <button class="btn-primary" onclick="saveAccount()">Simpan Dompet</button>
+      <button class="btn-secondary" onclick="closeModal('accModal')">Batal</button>
     </div>
   </div>
 
   <script>
-    if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
+    const DEFAULT_CLIENT_ID = "557432507799-9vbpdn6c5d0br6nmdds2gl5tu6nrr8st.apps.googleusercontent.com";
+    const DEFAULT_SUAMI_FILE_ID = "1pzSOUM3prjOND-n_g180hdtsHzU1bYKi";
+    const DRIVE_SCOPES = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly";
 
-    const STORAGE_KEY = 'saku_harian_db_v1';
-    const CONFIG_KEY = 'saku_harian_gdrive_cfg';
-    let hideBalance = false;
-    let currentFilter = 'all';
+    const STORAGE_KEY = "sakuharian_istri_db_v4";
+    const CFG_KEY = "sakuharian_istri_drive_cfg_v4";
 
-    const generateUUID = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-      const r = Math.random() * 16 | 0;
-      return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-    });
-    const nowISO = () => new Date().toISOString();
-    const formatRp = (n) => 'Rp ' + Math.round(Number(n || 0)).toLocaleString('id-ID');
+    let accessToken = null;
+    let tokenExpiresAt = 0;
+    let tokenClient = null;
+    let pendingActionAfterAuth = null;
 
-    function loadDB() {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) return JSON.parse(raw);
-      const init = {
-        daily_limit: 50000,
-        accounts: [
-          { uuid: 'acc-default-tunai', name: 'Dompet Harian', type: 'TUNAI', owner: 'Bersama', initial_balance: 0, updated_at: nowISO(), is_deleted: false }
-        ],
-        transactions: []
-      };
-      saveDB(init);
-      return init;
-    }
-
-    function saveDB(db) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
-      renderUI();
-    }
-
-    function toggleHideBalance() {
-      hideBalance = !hideBalance;
-      document.getElementById('toggleEyeBtn').innerText = hideBalance ? 'Tampilkan Saldo' : 'Sembunyikan Saldo';
-      renderUI();
-    }
-
-    function setFilter(f, el) {
-      currentFilter = f;
-      document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-      el.classList.add('active');
-      renderUI();
-    }
-
-    function renderUI() {
-      const db = loadDB();
-      const activeAcc = db.accounts.filter(a => !a.is_deleted);
-      const activeTrx = db.transactions.filter(t => !t.is_deleted).sort((a, b) => new Date(b.trx_date) - new Date(a.trx_date));
-      const now = new Date();
-      const todayStr = now.toISOString().slice(0, 10);
-
-      // Hitung saldo per rekening & total bersih
-      let grandTotal = 0;
-      const accContainer = document.getElementById('accountsList');
-      const selects = ['trxAccount', 'tfFrom', 'tfTo'].map(id => document.getElementById(id));
-      accContainer.innerHTML = '';
-      selects.forEach(s => s.innerHTML = '');
-
-      activeAcc.forEach(acc => {
-        const delta = activeTrx
-          .filter(t => t.account_uuid === acc.uuid)
-          .reduce((sum, t) => sum + (t.type === 'income' ? Number(t.amount) : -Number(t.amount)), 0);
-        const bal = Number(acc.initial_balance) + delta;
-        grandTotal += bal;
-
-        const shortCode = acc.name.replace(/Bank\s+/i, '').slice(0, 4).toUpperCase();
-        accContainer.innerHTML += `
-          <div class="acc-card">
-            <div class="acc-top">
-              <div class="acc-badge">${shortCode}</div>
-              <span class="acc-type">${acc.type || 'BANK'}</span>
-            </div>
-            <div class="acc-name">${acc.name}</div>
-            <div class="acc-bal">${hideBalance ? 'Rp •••••••' : formatRp(bal)}</div>
-          </div>`;
-
-        selects.forEach(s => s.innerHTML += `<option value="${acc.uuid}">${acc.name} (${acc.owner})</option>`);
+    function generateUuid() {
+      if (crypto && crypto.randomUUID) return crypto.randomUUID();
+      return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0, v = c === "x" ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
       });
+    }
 
-      // Pemasukan & Pengeluaran Bulan Ini
-      const monthPrefix = todayStr.slice(0, 7);
-      const monthTrx = activeTrx.filter(t => (t.trx_date || '').startsWith(monthPrefix));
-      const mIn = monthTrx.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
-      const mOut = monthTrx.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
+    function nowIso() {
+      return new Date().toISOString();
+    }
 
-      document.getElementById('totalBalance').innerText = hideBalance ? 'Rp ••••••••' : formatRp(grandTotal);
-      document.getElementById('monthIncome').innerText = hideBalance ? 'Rp •••••' : formatRp(mIn);
-      document.getElementById('monthExpense').innerText = hideBalance ? 'Rp •••••' : formatRp(mOut);
-
-      // Analisis Cerdas & Batas Harian
-      const dailyLimit = Number(db.daily_limit || 50000);
-      const todayOut = activeTrx
-        .filter(t => t.type === 'expense' && (t.trx_date || '').startsWith(todayStr))
-        .reduce((s, t) => s + Number(t.amount), 0);
-
-      const pct = dailyLimit > 0 ? Math.min(100, Math.round((todayOut / dailyLimit) * 100)) : 0;
-      const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-      const remDays = Math.max(1, daysInMonth - now.getDate() + 1);
-      const safePerDay = Math.max(0, grandTotal / remDays);
-      const savingRatio = mIn > 0 ? Math.max(0, Math.round(((mIn - mOut) / mIn) * 100)) : 0;
-
-      document.getElementById('dailyLimitBadge').innerText = `Rp ${Math.round(dailyLimit/1000)}rb/hr`;
-      document.getElementById('safeSpendBanner').innerText = `Rasio Tabungan: ${savingRatio}% • Aman belanja/hari (${remDays} hr sisa): ${formatRp(safePerDay)}`;
-      document.getElementById('limitTitle').innerText = `Batas Harian: ${formatRp(dailyLimit)}`;
-      document.getElementById('limitPct').innerText = `${pct}%`;
-      document.getElementById('limitPct').style.color = todayOut > dailyLimit ? 'var(--red)' : 'var(--primary)';
-      document.getElementById('limitBar').style.width = `${pct}%`;
-      document.getElementById('limitBar').style.background = todayOut > dailyLimit ? 'var(--red)' : 'var(--primary)';
-
-      const dayBanner = document.getElementById('todaySummaryBanner');
-      const dateFormatted = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
-      document.getElementById('todayDateLabel').innerText = `Hari Ini • ${dateFormatted}`;
-
-      if (todayOut > dailyLimit) {
-        const over = todayOut - dailyLimit;
-        document.getElementById('limitNote').innerText = `Hari ini lewat batas ${formatRp(over)}`;
-        dayBanner.className = 'day-banner';
-        document.getElementById('todayOutLabel').innerText = `Keluar: ${formatRp(todayOut)} (Lewat Batas!)`;
-      } else {
-        document.getElementById('limitNote').innerText = `Sisa kuota hari ini: ${formatRp(dailyLimit - todayOut)}`;
-        dayBanner.className = 'day-banner safe';
-        document.getElementById('todayOutLabel').innerText = `Keluar: ${formatRp(todayOut)}`;
+    function loadCfg() {
+      try {
+        const raw = JSON.parse(localStorage.getItem(CFG_KEY) || "{}");
+        return {
+          clientId: raw.clientId || DEFAULT_CLIENT_ID,
+          suamiFileId: raw.suamiFileId || DEFAULT_SUAMI_FILE_ID,
+          istriFileId: raw.istriFileId || "",
+          lastSyncIso: raw.lastSyncIso || ""
+        };
+      } catch (e) {
+        return {
+          clientId: DEFAULT_CLIENT_ID,
+          suamiFileId: DEFAULT_SUAMI_FILE_ID,
+          istriFileId: "",
+          lastSyncIso: ""
+        };
       }
+    }
 
-      // Grafik Batang 7 Hari Terakhir
-      const barContainer = document.getElementById('barChart');
-      barContainer.innerHTML = '';
-      const last7 = [];
-      let maxBar = 1;
-      for (let i = 6; i >= 0; i--) {
-        const d = new Date(now);
-        d.setDate(now.getDate() - i);
-        const key = d.toISOString().slice(0, 10);
-        const lbl = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
-        const dIn = activeTrx.filter(t => t.type === 'income' && (t.trx_date||'').startsWith(key)).reduce((s,t)=>s+Number(t.amount),0);
-        const dOut = activeTrx.filter(t => t.type === 'expense' && (t.trx_date||'').startsWith(key)).reduce((s,t)=>s+Number(t.amount),0);
-        maxBar = Math.max(maxBar, dIn, dOut);
-        last7.push({ lbl, dIn, dOut });
-      }
-      last7.forEach(item => {
-        const hIn = Math.round((item.dIn / maxBar) * 80);
-        const hOut = Math.round((item.dOut / maxBar) * 80);
-        barContainer.innerHTML += `
-          <div class="bar-col">
-            <div class="bar-pair">
-              <div class="bar bar-in" style="height:${hIn}px"></div>
-              <div class="bar bar-out" style="height:${hOut}px"></div>
-            </div>
-            <div class="bar-lbl">${item.lbl}</div>
-          </div>`;
-      });
+    function saveCfg(cfg) {
+      localStorage.setItem(CFG_KEY, JSON.stringify(cfg));
+      refreshDriveStatusUi();
+    }
 
-      // Donut Chart Kategori Bulan Ini
-      const catMap = {};
-      monthTrx.filter(t => t.type === 'expense').forEach(t => {
-        catMap[t.category] = (catMap[t.category] || 0) + Number(t.amount);
-      });
-      const catEntries = Object.entries(catMap).sort((a, b) => b[1] - a[1]);
-      document.getElementById('catCount').innerText = `${catEntries.length} Pos`;
-      const catListEl = document.getElementById('catList');
-      const colors = ['#0f6b52', '#10b981', '#3b82f6', '#f59e0b', '#ef4444'];
-      if (!catEntries.length) {
-        catListEl.innerHTML = '<div style="color:var(--muted);">Belum ada pengeluaran bulan ini.</div>';
-        document.getElementById('donutChart').style.background = '#e5e7eb';
-      } else {
-        let accPct = 0;
-        const stops = [];
-        catListEl.innerHTML = '';
-        catEntries.slice(0, 4).forEach(([cat, val], idx) => {
-          const p = mOut > 0 ? Math.round((val / mOut) * 100) : 0;
-          const col = colors[idx % colors.length];
-          stops.push(`${col} ${accPct}% ${accPct + p}%`);
-          accPct += p;
-          catListEl.innerHTML += `
-            <div class="cat-item">
-              <span><b style="color:${col};">●</b> ${cat} (${p}%)</span>
-              <strong>${formatRp(val)}</strong>
-            </div>`;
-        });
-        document.getElementById('donutChart').style.background = `conic-gradient(${stops.join(', ')})`;
-      }
-
-      // Filter Mutasi & Pencarian
-      const q = document.getElementById('searchInput').value.toLowerCase();
-      const filteredTrx = activeTrx.filter(t => {
-        const matchQ = (t.title||'').toLowerCase().includes(q) || (t.category||'').toLowerCase().includes(q);
-        if (!matchQ) return false;
-        if (currentFilter === 'today') return (t.trx_date||'').startsWith(todayStr);
-        if (currentFilter === 'month') return (t.trx_date||'').startsWith(monthPrefix);
-        if (currentFilter === 'week') {
-          const diff = (now - new Date(t.trx_date)) / (1000 * 60 * 60 * 24);
-          return diff <= 7;
+    function loadDb() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed.accounts) && Array.isArray(parsed.transactions)) {
+            parsed.deleted_items = Array.isArray(parsed.deleted_items) ? parsed.deleted_items : [];
+            return parsed;
+          }
         }
-        return true;
+      } catch (e) {}
+      const initDb = {
+        accounts: [
+          {
+            uuid: generateUuid(),
+            name: "Dompet Harian",
+            bank_code: "TUNAI",
+            type: "CASH",
+            owner: "Istri",
+            balance: 0,
+            initial_balance: 0,
+            updated_at: nowIso()
+          }
+        ],
+        transactions: [],
+        deleted_items: []
+      };
+      saveDb(initDb);
+      return initDb;
+    }
+
+    function saveDb(dbObj) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(dbObj));
+    }
+
+    let db = loadDb();
+    let currentFilter = "ALL";
+    let currentTxType = "EXPENSE";
+
+    function showToast(msg) {
+      const el = document.getElementById("toast");
+      el.textContent = msg;
+      el.style.display = "block";
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => { el.style.display = "none"; }, 3600);
+    }
+
+    function formatRp(n) {
+      const num = Number(n) || 0;
+      const prefix = num < 0 ? "-Rp " : "Rp ";
+      return prefix + Math.abs(Math.round(num)).toLocaleString("id-ID");
+    }
+
+    function guessBankCode(name) {
+      const u = (name || "").toUpperCase();
+      if (u.includes("BSI")) return "BSI";
+      if (u.includes("MANDIRI")) return "MANDIRI";
+      if (u.includes("JAGO")) return "JAGO";
+      if (u.includes("BCA")) return "BCA";
+      if (u.includes("BNI")) return "BNI";
+      if (u.includes("BRI")) return "BRI";
+      if (u.includes("GOPAY")) return "GOPAY";
+      if (u.includes("DANA")) return "DANA";
+      if (u.includes("OVO")) return "OVO";
+      if (u.includes("SHOPEE")) return "SHOPEEPAY";
+      return "TUNAI";
+    }
+
+    function ensureGoogleAuth(interactive, callback) {
+      const cfg = loadCfg();
+      if (accessToken && Date.now() < tokenExpiresAt - 60000) {
+        callback(accessToken);
+        return;
+      }
+      if (!window.google || !google.accounts || !google.accounts.oauth2) {
+        if (interactive) showToast("Library Google belum siap, coba 2 detik lagi.");
+        return;
+      }
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: cfg.clientId,
+        scope: DRIVE_SCOPES,
+        callback: (resp) => {
+          if (resp.error) {
+            if (interactive) showToast("Gagal login Google: " + resp.error);
+            return;
+          }
+          accessToken = resp.access_token;
+          tokenExpiresAt = Date.now() + (Number(resp.expires_in) || 3500) * 1000;
+          if (pendingActionAfterAuth) {
+            const fn = pendingActionAfterAuth;
+            pendingActionAfterAuth = null;
+            fn(accessToken);
+          }
+        }
+      });
+      pendingActionAfterAuth = callback;
+      tokenClient.requestAccessToken({ prompt: interactive ? "" : "none" });
+    }
+
+    async function findOrCreateIstriFileOnDrive(token) {
+      const cfg = loadCfg();
+      if (cfg.istriFileId) {
+        const checkRes = await fetch(`https://www.googleapis.com/drive/v3/files/${cfg.istriFileId}?fields=id,name,trashed`, {
+          headers: { Authorization: "Bearer " + token }
+        });
+        if (checkRes.ok) {
+          const meta = await checkRes.json();
+          if (!meta.trashed) return cfg.istriFileId;
+        }
+      }
+
+      const q = encodeURIComponent("name='sync_istri.json' and trashed=false");
+      const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)`, {
+        headers: { Authorization: "Bearer " + token }
+      });
+      if (searchRes.ok) {
+        const searchData = await searchRes.json();
+        if (searchData.files && searchData.files.length > 0) {
+          cfg.istriFileId = searchData.files[0].id;
+          saveCfg(cfg);
+          return cfg.istriFileId;
+        }
+      }
+
+      const createRes = await fetch("https://www.googleapis.com/drive/v3/files", {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer " + token,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          name: "sync_istri.json",
+          mimeType: "application/json"
+        })
+      });
+      if (!createRes.ok) {
+        const errText = await createRes.text();
+        throw new Error("Gagal membuat sync_istri.json (" + createRes.status + "): " + errText);
+      }
+      const created = await createRes.json();
+      cfg.istriFileId = created.id;
+      saveCfg(cfg);
+      return created.id;
+    }
+
+    function oneTapCreateAndConnectDrive() {
+      showToast("Menghubungkan ke Google Drive...");
+      ensureGoogleAuth(true, async (token) => {
+        try {
+          const fileId = await findOrCreateIstriFileOnDrive(token);
+          await runSyncWithToken(token, false);
+          showToast("Berhasil! sync_istri.json aktif & tersinkron.");
+          refreshDriveStatusUi();
+        } catch (err) {
+          showToast(err.message || "Gagal membuat file Drive");
+        }
+      });
+    }
+
+    function triggerDriveSync(silent = false) {
+      const cfg = loadCfg();
+      if (!cfg.istriFileId && silent) return;
+      ensureGoogleAuth(!silent, async (token) => {
+        try {
+          await runSyncWithToken(token, silent);
+        } catch (err) {
+          if (!silent) showToast("Sync gagal: " + (err.message || "Kesalahan jaringan"));
+        }
+      });
+    }
+
+    async function runSyncWithToken(token, silent) {
+      const btn = document.getElementById("btnQuickSync");
+      if (btn) btn.textContent = "↻ ...";
+      try {
+        const cfg = loadCfg();
+        const istriId = await findOrCreateIstriFileOnDrive(token);
+        let dataChanged = false;
+
+        if (cfg.suamiFileId) {
+          const resSuami = await fetch(`https://www.googleapis.com/drive/v3/files/${cfg.suamiFileId}?alt=media`, {
+            headers: { Authorization: "Bearer " + token }
+          });
+          if (resSuami.ok) {
+            const rawText = await resSuami.text();
+            if (rawText && rawText.trim()) {
+              const suamiObj = JSON.parse(rawText);
+              dataChanged = mergeSuamiJson(suamiObj);
+            }
+          } else if (!silent) {
+            if (resSuami.status === 404 || resSuami.status === 403) {
+              showToast("sync_suami.json belum di-Share ke Gmail Istri.");
+            }
+          }
+        }
+
+        const payloadStr = JSON.stringify(buildSyncPayloadForAndroid(), null, 2);
+        const upRes = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${istriId}?uploadType=media`, {
+          method: "PATCH",
+          headers: {
+            Authorization: "Bearer " + token,
+            "Content-Type": "application/json"
+          },
+          body: payloadStr
+        });
+        if (!upRes.ok) {
+          throw new Error("Gagal menulis sync_istri.json (" + upRes.status + ")");
+        }
+
+        cfg.lastSyncIso = nowIso();
+        saveCfg(cfg);
+
+        if (!silent || dataChanged) {
+          showToast(dataChanged ? "Sinkron berhasil! Data Suami diperbarui." : "Sinkron Drive berhasil!");
+        }
+      } finally {
+        if (btn) btn.textContent = "↻ Sync";
+      }
+    }
+
+    async function copyIstriFileIdForAndroid() {
+      const cfg = loadCfg();
+      if (!cfg.istriFileId) {
+        showToast("Klik tombol 1 dulu untuk membuat sync_istri.json.");
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(cfg.istriFileId);
+        showToast("File ID disalin! Bagikan sync_istri.json ke Suami lalu pilih di Android.");
+      } catch (e) {
+        prompt("Salin File ID sync_istri.json ini:", cfg.istriFileId);
+      }
+    }
+
+    function refreshDriveStatusUi() {
+      const cfg = loadCfg();
+      const card = document.getElementById("driveStatusCard");
+      const headerStatus = document.getElementById("headerSyncStatus");
+      const istriStatus = cfg.istriFileId ? `sync_istri.json ✓ (${cfg.istriFileId.slice(0, 10)}...)` : "Belum dibuat (Klik tombol 1)";
+      const suamiStatus = cfg.suamiFileId ? `sync_suami.json ✓ (${cfg.suamiFileId.slice(0, 10)}...)` : "Belum diatur";
+      const lastSync = cfg.lastSyncIso || "Belum pernah sinkron";
+
+      if (card) {
+        card.innerHTML = `File Istri: <strong>${istriStatus}</strong><br/>File Suami: <strong>${suamiStatus}</strong><br/>Terakhir sync: ${lastSync}`;
+      }
+      if (headerStatus) {
+        headerStatus.textContent = cfg.lastSyncIso
+          ? "Tersinkron • " + new Date(cfg.lastSyncIso).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })
+          : (cfg.istriFileId ? "Siap sinkron otomatis" : "Ketuk ⚙ Drive untuk 1-tap setup");
+      }
+      const inpIstri = document.getElementById("inputIstriFileId");
+      const inpSuami = document.getElementById("inputSuamiFileId");
+      const inpClient = document.getElementById("inputClientId");
+      if (inpIstri) inpIstri.value = cfg.istriFileId;
+      if (inpSuami) inpSuami.value = cfg.suamiFileId;
+      if (inpClient) inpClient.value = cfg.clientId;
+    }
+
+    function toggleAdvancedDrive() {
+      const box = document.getElementById("advDriveBox");
+      const btn = document.getElementById("btnToggleAdv");
+      const isOpen = box.classList.toggle("open");
+      btn.textContent = isOpen
+        ? "PENGATURAN LANJUTAN (ID & CLIENT ID) ▴"
+        : "PENGATURAN LANJUTAN (ID & CLIENT ID) ▾";
+    }
+
+    function saveAdvancedDriveConfig() {
+      const cfg = loadCfg();
+      cfg.istriFileId = document.getElementById("inputIstriFileId").value.trim();
+      cfg.suamiFileId = document.getElementById("inputSuamiFileId").value.trim();
+      cfg.clientId = document.getElementById("inputClientId").value.trim() || DEFAULT_CLIENT_ID;
+      saveCfg(cfg);
+      showToast("Pengaturan ID disimpan.");
+      triggerDriveSync(false);
+    }
+
+    function buildSyncPayloadForAndroid() {
+      const accOut = db.accounts.map(a => ({
+        uuid: a.uuid,
+        name: a.name,
+        bank_code: a.bank_code || guessBankCode(a.name),
+        type: a.type || "CASH",
+        owner: a.owner || "Istri",
+        balance: Math.round(Number(a.balance) || 0),
+        initial_balance: Math.round(Number(a.initial_balance ?? a.balance) || 0),
+        updated_at: a.updated_at || nowIso(),
+        is_deleted: false
+      }));
+
+      db.deleted_items.filter(d => d.entity_type === "account").forEach(d => {
+        accOut.push({ uuid: d.uuid, updated_at: d.deleted_at, is_deleted: true });
       });
 
-      const trxListEl = document.getElementById('transactionsList');
-      trxListEl.innerHTML = filteredTrx.length ? '' : '<div style="text-align:center; color:var(--muted); font-size:13px; padding:16px;">Belum ada mutasi transaksi.</div>';
+      const txOut = db.transactions.map(t => ({
+        uuid: t.uuid,
+        account_uuid: t.account_uuid,
+        type: t.type,
+        title: t.title,
+        category: t.category || "Lainnya",
+        amount: Math.round(Number(t.amount) || 0),
+        recorded_by: t.recorded_by || "Istri",
+        timestamp: t.timestamp || Date.parse(t.trx_date) || Date.now(),
+        trx_date: t.trx_date || new Date(t.timestamp || Date.now()).toISOString(),
+        updated_at: t.updated_at || nowIso(),
+        is_deleted: false
+      }));
 
-      filteredTrx.forEach(trx => {
-        const acc = activeAcc.find(a => a.uuid === trx.account_uuid);
-        const isInc = trx.type === 'income';
-        const code = acc ? acc.name.replace(/Bank\s+/i, '').slice(0, 4).toUpperCase() : 'AKUN';
-        trxListEl.innerHTML += `
-          <div class="trx-card">
-            <div class="trx-left">
-              <div class="acc-badge">${code}</div>
-              <div>
-                <div class="trx-title">${trx.title}</div>
-                <div class="trx-sub">${acc ? acc.name : 'Akun'} • ${trx.category} • ${trx.recorded_by}</div>
+      db.deleted_items.filter(d => d.entity_type === "transaction").forEach(d => {
+        txOut.push({ uuid: d.uuid, updated_at: d.deleted_at, is_deleted: true });
+      });
+
+      return {
+        device_id: "pwa_istri",
+        last_synced_at: nowIso(),
+        accounts: accOut,
+        transactions: txOut
+      };
+    }
+
+    function mergeSuamiJson(suamiData) {
+      if (!suamiData || typeof suamiData !== "object") return false;
+      let changed = false;
+      const remAccounts = Array.isArray(suamiData.accounts) ? suamiData.accounts : [];
+      const remTransactions = Array.isArray(suamiData.transactions) ? suamiData.transactions : [];
+
+      remAccounts.forEach(rem => {
+        if (!rem.uuid) return;
+        const remMs = Date.parse(rem.updated_at || "") || 0;
+        const idx = db.accounts.findIndex(a => a.uuid === rem.uuid);
+
+        if (rem.is_deleted) {
+          if (idx >= 0 && remMs >= (Date.parse(db.accounts[idx].updated_at || "") || 0)) {
+            const removedAcc = db.accounts.splice(idx, 1)[0];
+            db.transactions = db.transactions.filter(t => t.account_uuid !== removedAcc.uuid);
+            changed = true;
+          }
+          return;
+        }
+
+        const isTombstoned = db.deleted_items.some(d => d.uuid === rem.uuid && (Date.parse(d.deleted_at) || 0) > remMs);
+        if (isTombstoned) return;
+
+        if (idx < 0) {
+          const sameNameIdx = db.accounts.findIndex(a => a.name.toLowerCase() === (rem.name || "").toLowerCase());
+          if (sameNameIdx >= 0) {
+            const oldUuid = db.accounts[sameNameIdx].uuid;
+            db.accounts[sameNameIdx].uuid = rem.uuid;
+            db.accounts[sameNameIdx].balance = Number(rem.balance) || 0;
+            db.accounts[sameNameIdx].updated_at = rem.updated_at || nowIso();
+            db.transactions.forEach(t => { if (t.account_uuid === oldUuid) t.account_uuid = rem.uuid; });
+          } else {
+            db.accounts.push({
+              uuid: rem.uuid,
+              name: rem.name || "Akun Suami",
+              bank_code: rem.bank_code || guessBankCode(rem.name),
+              type: rem.type || "BANK",
+              owner: rem.owner || "Suami",
+              balance: Number(rem.balance) || 0,
+              initial_balance: Number(rem.initial_balance ?? rem.balance) || 0,
+              updated_at: rem.updated_at || nowIso()
+            });
+          }
+          changed = true;
+        } else {
+          const locMs = Date.parse(db.accounts[idx].updated_at || "") || 0;
+          if (remMs >= locMs) {
+            db.accounts[idx].name = rem.name || db.accounts[idx].name;
+            db.accounts[idx].bank_code = rem.bank_code || db.accounts[idx].bank_code;
+            db.accounts[idx].type = rem.type || db.accounts[idx].type;
+            db.accounts[idx].owner = rem.owner || db.accounts[idx].owner;
+            db.accounts[idx].balance = Number(rem.balance) || 0;
+            db.accounts[idx].updated_at = rem.updated_at || nowIso();
+            changed = true;
+          }
+        }
+      });
+
+      remTransactions.forEach(rem => {
+        if (!rem.uuid) return;
+        const remMs = Date.parse(rem.updated_at || "") || 0;
+        const idx = db.transactions.findIndex(t => t.uuid === rem.uuid);
+
+        if (rem.is_deleted) {
+          if (idx >= 0 && remMs >= (Date.parse(db.transactions[idx].updated_at || "") || 0)) {
+            db.transactions.splice(idx, 1);
+            changed = true;
+          }
+          return;
+        }
+
+        const isTombstoned = db.deleted_items.some(d => d.uuid === rem.uuid && (Date.parse(d.deleted_at) || 0) > remMs);
+        if (isTombstoned) return;
+
+        const normType = String(rem.type || "EXPENSE").toUpperCase().includes("INC") ? "INCOME" : "EXPENSE";
+        const ts = Number(rem.timestamp) || Date.parse(rem.trx_date || "") || Date.now();
+        const fallbackAccUuid = db.accounts[0] ? db.accounts[0].uuid : "";
+        const targetAccUuid = db.accounts.some(a => a.uuid === rem.account_uuid) ? rem.account_uuid : fallbackAccUuid;
+
+        if (idx < 0) {
+          db.transactions.push({
+            uuid: rem.uuid,
+            account_uuid: targetAccUuid,
+            type: normType,
+            title: rem.title || "Transaksi Suami",
+            category: rem.category || "Harian",
+            amount: Number(rem.amount) || 0,
+            recorded_by: rem.recorded_by || "Suami",
+            timestamp: ts,
+            trx_date: new Date(ts).toISOString(),
+            updated_at: rem.updated_at || new Date(ts).toISOString()
+          });
+          changed = true;
+        } else {
+          const locMs = Date.parse(db.transactions[idx].updated_at || "") || 0;
+          if (remMs > locMs) {
+            db.transactions[idx] = {
+              ...db.transactions[idx],
+              account_uuid: targetAccUuid,
+              type: normType,
+              title: rem.title || db.transactions[idx].title,
+              category: rem.category || db.transactions[idx].category,
+              amount: Number(rem.amount) || 0,
+              recorded_by: rem.recorded_by || db.transactions[idx].recorded_by,
+              timestamp: ts,
+              trx_date: new Date(ts).toISOString(),
+              updated_at: rem.updated_at || nowIso()
+            };
+            changed = true;
+          }
+        }
+      });
+
+      if (changed) {
+        saveDb(db);
+        renderAll();
+      }
+      return changed;
+    }
+
+    function renderAll() {
+      const totalBal = db.accounts.reduce((s, a) => s + (Number(a.balance) || 0), 0);
+      document.getElementById("totalBalance").textContent = formatRp(totalBal);
+
+      const now = new Date();
+      const curM = now.getMonth(), curY = now.getFullYear();
+      let mInc = 0, mExp = 0;
+      db.transactions.forEach(t => {
+        const d = new Date(t.timestamp || Date.parse(t.trx_date));
+        if (d.getMonth() === curM && d.getFullYear() === curY) {
+          if (t.type === "INCOME") mInc += Number(t.amount) || 0;
+          else mExp += Number(t.amount) || 0;
+        }
+      });
+      document.getElementById("monthIncome").textContent = formatRp(mInc);
+      document.getElementById("monthExpense").textContent = formatRp(mExp);
+
+      const accRow = document.getElementById("accountsRow");
+      accRow.innerHTML = db.accounts.map(a => {
+        const isSuami = (a.owner || "").toLowerCase() === "suami";
+        return `
+          <div class="acc-card">
+            <span class="acc-owner ${isSuami ? "suami" : ""}">${a.owner || "Istri"}</span>
+            <div class="acc-name">${escapeHtml(a.name)}</div>
+            <div class="acc-bal">${formatRp(a.balance)}</div>
+          </div>
+        `;
+      }).join("");
+
+      const q = (document.getElementById("searchInput").value || "").toLowerCase().trim();
+      const sorted = [...db.transactions]
+        .filter(t => {
+          if (currentFilter !== "ALL" && (t.recorded_by || "Istri").toLowerCase() !== currentFilter.toLowerCase()) return false;
+          if (q && !(t.title || "").toLowerCase().includes(q) && !(t.category || "").toLowerCase().includes(q)) return false;
+          return true;
+        })
+        .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+      const txList = document.getElementById("txList");
+      if (sorted.length === 0) {
+        txList.innerHTML = `<div class="empty-box">Belum ada transaksi ditampilkan.<br/>Ketuk <strong>+ Catat Transaksi</strong> atau <strong>↻ Sync</strong> untuk memuat data Suami.</div>`;
+        return;
+      }
+
+      txList.innerHTML = sorted.map(t => {
+        const isInc = t.type === "INCOME";
+        const acc = db.accounts.find(a => a.uuid === t.account_uuid);
+        const dt = new Date(t.timestamp || Date.parse(t.trx_date));
+        const dtStr = dt.toLocaleDateString("id-ID", { day: "2-digit", month: "short" }) + " " +
+                      dt.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+        return `
+          <div class="tx-item" onclick="openTxModal('${t.uuid}')">
+            <div class="tx-left">
+              <div class="tx-title">${escapeHtml(t.title)}</div>
+              <div class="tx-meta">
+                <span class="badge-who">${escapeHtml(t.recorded_by || "Istri")}</span>
+                <span>${escapeHtml(t.category || "Harian")}</span>
+                <span>• ${escapeHtml(acc ? acc.name : "Dompet")}</span>
+                <span>• ${dtStr}</span>
               </div>
             </div>
-            <div class="trx-right">
-              <span class="trx-amt ${isInc ? 'amt-in' : 'amt-out'}">${isInc ? '+' : '-'} ${formatRp(trx.amount)}</span>
-              <button class="trash-btn" onclick="deleteTransaction('${trx.uuid}')">🗑</button>
-            </div>
-          </div>`;
-      });
+            <div class="tx-amt ${isInc ? "inc" : "exp"}">${isInc ? "+" : "-"}${formatRp(t.amount)}</div>
+          </div>
+        `;
+      }).join("");
     }
 
-    // Modal Helpers
-    const openTrxModal = () => document.getElementById('trxModal').classList.add('active');
-    const openAccModal = () => document.getElementById('accModal').classList.add('active');
-    const openTransferModal = () => document.getElementById('transferModal').classList.add('active');
-    function openBudgetModal() {
-      document.getElementById('cfgDailyLimit').value = loadDB().daily_limit || 50000;
-      document.getElementById('budgetModal').classList.add('active');
+    function escapeHtml(str) {
+      return String(str || "").replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
     }
-    function openConfigModal() {
-      const cfg = JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}');
-      document.getElementById('cfgClientId').value = cfg.clientId || '';
-      document.getElementById('cfgFileSelf').value = cfg.fileSelf || '';
-      document.getElementById('cfgFilePartner').value = cfg.filePartner || '';
-      document.getElementById('configModal').classList.add('active');
+
+    function setFilter(f, btn) {
+      currentFilter = f;
+      document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+      btn.classList.add("active");
+      renderAll();
     }
-    const closeModals = () => document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
+
+    function selectTxType(type) {
+      currentTxType = type;
+      document.getElementById("btnTypeExp").className = "type-btn" + (type === "EXPENSE" ? " active-exp" : "");
+      document.getElementById("btnTypeInc").className = "type-btn" + (type === "INCOME" ? " active-inc" : "");
+    }
+
+    function openDriveModal() {
+      refreshDriveStatusUi();
+      document.getElementById("driveModal").classList.add("open");
+    }
+
+    function openTxModal(uuid = null) {
+      const sel = document.getElementById("txAccountSelect");
+      sel.innerHTML = db.accounts.map(a => `<option value="${a.uuid}">${escapeHtml(a.name)} (${a.owner || "Istri"})</option>`).join("");
+
+      if (uuid) {
+        const tx = db.transactions.find(t => t.uuid === uuid);
+        if (!tx) return;
+        document.getElementById("txModalTitle").textContent = "Edit Transaksi";
+        document.getElementById("editTxUuid").value = tx.uuid;
+        selectTxType(tx.type);
+        sel.value = tx.account_uuid;
+        document.getElementById("txTitle").value = tx.title;
+        document.getElementById("txAmount").value = tx.amount;
+        document.getElementById("txCategory").value = tx.category || "Lainnya";
+        const d = new Date(tx.timestamp || Date.now());
+        d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+        document.getElementById("txDateTime").value = d.toISOString().slice(0, 16);
+        document.getElementById("btnDeleteTx").style.display = "block";
+      } else {
+        document.getElementById("txModalTitle").textContent = "Catat Transaksi";
+        document.getElementById("editTxUuid").value = "";
+        selectTxType("EXPENSE");
+        const istriAcc = db.accounts.find(a => (a.owner || "").toLowerCase() === "istri");
+        if (istriAcc) sel.value = istriAcc.uuid;
+        document.getElementById("txTitle").value = "";
+        document.getElementById("txAmount").value = "";
+        const d = new Date();
+        d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+        document.getElementById("txDateTime").value = d.toISOString().slice(0, 16);
+        document.getElementById("btnDeleteTx").style.display = "none";
+      }
+      document.getElementById("txModal").classList.add("open");
+    }
 
     function saveTransaction() {
-      const db = loadDB();
-      const title = document.getElementById('trxTitle').value.trim();
-      const amount = Number(document.getElementById('trxAmount').value);
-      if (!title || !amount) return alert('Lengkapi keterangan dan nominal');
-      db.transactions.push({
-        uuid: generateUUID(),
-        account_uuid: document.getElementById('trxAccount').value,
-        title, amount,
-        type: document.getElementById('trxType').value,
-        category: document.getElementById('trxCategory').value,
-        recorded_by: 'Istri',
-        trx_date: nowISO(),
-        updated_at: nowISO(),
-        is_deleted: false
-      });
-      saveDB(db);
-      document.getElementById('trxTitle').value = '';
-      document.getElementById('trxAmount').value = '';
-      closeModals();
+      const editUuid = document.getElementById("editTxUuid").value;
+      const accUuid = document.getElementById("txAccountSelect").value;
+      const title = document.getElementById("txTitle").value.trim();
+      const amount = Math.round(Number(document.getElementById("txAmount").value) || 0);
+      const category = document.getElementById("txCategory").value;
+      const dtVal = document.getElementById("txDateTime").value;
+      const ts = dtVal ? Date.parse(dtVal) : Date.now();
+
+      if (!title || amount <= 0) {
+        showToast("Isi keterangan dan nominal terlebih dahulu.");
+        return;
+      }
+
+      if (editUuid) {
+        const idx = db.transactions.findIndex(t => t.uuid === editUuid);
+        if (idx >= 0) {
+          const old = db.transactions[idx];
+          adjustAccountBalance(old.account_uuid, old.type === "INCOME" ? -old.amount : old.amount);
+          adjustAccountBalance(accUuid, currentTxType === "INCOME" ? amount : -amount);
+          db.transactions[idx] = {
+            ...old,
+            account_uuid: accUuid,
+            type: currentTxType,
+            title,
+            category,
+            amount,
+            timestamp: ts,
+            trx_date: new Date(ts).toISOString(),
+            updated_at: nowIso()
+          };
+        }
+      } else {
+        adjustAccountBalance(accUuid, currentTxType === "INCOME" ? amount : -amount);
+        db.transactions.push({
+          uuid: generateUuid(),
+          account_uuid: accUuid,
+          type: currentTxType,
+          title,
+          category,
+          amount,
+          recorded_by: "Istri",
+          timestamp: ts,
+          trx_date: new Date(ts).toISOString(),
+          updated_at: nowIso()
+        });
+      }
+
+      saveDb(db);
+      closeModal("txModal");
+      renderAll();
+      showToast("Transaksi tersimpan!");
+      triggerDriveSync(true);
+    }
+
+    function deleteCurrentTx() {
+      const editUuid = document.getElementById("editTxUuid").value;
+      const idx = db.transactions.findIndex(t => t.uuid === editUuid);
+      if (idx >= 0) {
+        const tx = db.transactions[idx];
+        adjustAccountBalance(tx.account_uuid, tx.type === "INCOME" ? -tx.amount : tx.amount);
+        db.deleted_items.push({ uuid: tx.uuid, entity_type: "transaction", deleted_at: nowIso() });
+        db.transactions.splice(idx, 1);
+        saveDb(db);
+        closeModal("txModal");
+        renderAll();
+        showToast("Transaksi dihapus.");
+        triggerDriveSync(true);
+      }
+    }
+
+    function adjustAccountBalance(accUuid, delta) {
+      const acc = db.accounts.find(a => a.uuid === accUuid);
+      if (acc) {
+        acc.balance = (Number(acc.balance) || 0) + delta;
+        acc.updated_at = nowIso();
+      }
+    }
+
+    function openAccountModal() {
+      document.getElementById("accName").value = "";
+      document.getElementById("accBalance").value = "";
+      document.getElementById("accModal").classList.add("open");
     }
 
     function saveAccount() {
-      const db = loadDB();
-      const name = document.getElementById('accName').value.trim();
-      if (!name) return alert('Nama akun wajib diisi');
+      const name = document.getElementById("accName").value.trim();
+      const type = document.getElementById("accType").value;
+      const balance = Math.round(Number(document.getElementById("accBalance").value) || 0);
+      if (!name) {
+        showToast("Masukkan nama dompet.");
+        return;
+      }
       db.accounts.push({
-        uuid: generateUUID(),
+        uuid: generateUuid(),
         name,
-        type: document.getElementById('accType').value,
-        owner: document.getElementById('accOwner').value,
-        initial_balance: Number(document.getElementById('accInitial').value || 0),
-        updated_at: nowISO(),
-        is_deleted: false
+        bank_code: guessBankCode(name),
+        type,
+        owner: "Istri",
+        balance,
+        initial_balance: balance,
+        updated_at: nowIso()
       });
-      saveDB(db);
-      document.getElementById('accName').value = '';
-      closeModals();
+      saveDb(db);
+      closeModal("accModal");
+      renderAll();
+      showToast("Dompet ditambahkan!");
+      triggerDriveSync(true);
     }
 
-    function saveTransfer() {
-      const db = loadDB();
-      const from = document.getElementById('tfFrom').value;
-      const to = document.getElementById('tfTo').value;
-      const amt = Number(document.getElementById('tfAmount').value);
-      if (from === to || !amt) return alert('Pilih akun berbeda dan isi nominal');
-      const now = nowISO();
-      db.transactions.push(
-        { uuid: generateUUID(), account_uuid: from, title: 'Transfer Keluar', amount: amt, type: 'expense', category: 'Transfer', recorded_by: 'Istri', trx_date: now, updated_at: now, is_deleted: false },
-        { uuid: generateUUID(), account_uuid: to, title: 'Transfer Masuk', amount: amt, type: 'income', category: 'Transfer', recorded_by: 'Istri', trx_date: now, updated_at: now, is_deleted: false }
-      );
-      saveDB(db);
-      document.getElementById('tfAmount').value = '';
-      closeModals();
+    function closeModal(id) {
+      document.getElementById(id).classList.remove("open");
     }
 
-    function saveBudget() {
-      const db = loadDB();
-      db.daily_limit = Number(document.getElementById('cfgDailyLimit').value || 50000);
-      saveDB(db);
-      closeModals();
+    function closeModalOnBg(e, id) {
+      if (e.target.id === id) closeModal(id);
     }
 
-    function deleteTransaction(uuid) {
-      if (!confirm('Hapus mutasi ini?')) return;
-      const db = loadDB();
-      const item = db.transactions.find(t => t.uuid === uuid);
-      if (item) { item.is_deleted = true; item.updated_at = nowISO(); saveDB(db); }
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./sw.js").catch(() => {});
     }
 
-    function saveConfig() {
-      localStorage.setItem(CONFIG_KEY, JSON.stringify({
-        clientId: document.getElementById('cfgClientId').value.trim(),
-        fileSelf: document.getElementById('cfgFileSelf').value.trim(),
-        filePartner: document.getElementById('cfgFilePartner').value.trim()
-      }));
-      closeModals();
-      alert('Konfigurasi Drive tersimpan!');
-    }
-
-    // Smart Merge & Google Drive Sync
-    function mergeArrays(localArr, remoteArr) {
-      const map = new Map();
-      localArr.forEach(item => map.set(item.uuid, item));
-      remoteArr.forEach(remote => {
-        const local = map.get(remote.uuid);
-        if (!local || new Date(remote.updated_at) > new Date(local.updated_at)) map.set(remote.uuid, remote);
-      });
-      return Array.from(map.values());
-    }
-
-    function syncWithGoogleDrive() {
-      const cfg = JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}');
-      if (!cfg.clientId || !cfg.fileSelf || !cfg.filePartner) {
-        openConfigModal();
-        return alert('Isi Client ID dan kedua File ID Google Drive dulu.');
-      }
-      const tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: cfg.clientId,
-        scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
-        callback: async (resp) => {
-          if (resp.error) return alert('Login Google gagal: ' + resp.error);
-          await runSyncProcess(cfg, resp.access_token);
-        }
-      });
-      tokenClient.requestAccessToken();
-    }
-
-    async function runSyncProcess(cfg, token) {
-      const statusEl = document.getElementById('syncStatus');
-      statusEl.innerText = 'Status Drive: Menyinkronkan...';
-      try {
-        const resPartner = await fetch(`https://www.googleapis.com/drive/v3/files/${cfg.filePartner}?alt=media`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const partnerData = resPartner.ok ? await resPartner.json() : { accounts: [], transactions: [] };
-        const localDB = loadDB();
-        const mergedDB = {
-          daily_limit: localDB.daily_limit,
-          accounts: mergeArrays(localDB.accounts, partnerData.accounts || []),
-          transactions: mergeArrays(localDB.transactions, partnerData.transactions || [])
-        };
-        saveDB(mergedDB);
-
-        await fetch(`https://www.googleapis.com/upload/drive/v3/files/${cfg.fileSelf}?uploadType=media`, {
-          method: 'PATCH',
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ device_id: 'pwa_istri', last_synced_at: nowISO(), accounts: mergedDB.accounts, transactions: mergedDB.transactions })
-        });
-        statusEl.innerText = 'Status Drive: Tersinkron (' + new Date().toLocaleTimeString('id-ID') + ')';
-      } catch (e) {
-        statusEl.innerText = 'Status Drive: Gagal sinkron, cek ID/koneksi';
-      }
-    }
-
-    renderUI();
+    renderAll();
+    refreshDriveStatusUi();
   </script>
 </body>
 </html>

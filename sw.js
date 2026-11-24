@@ -1,9 +1,9 @@
-const CACHE_NAME = 'saku-harian-v2';
-const ASSETS = ['./', './index.html', './manifest.json'];
+const CACHE_NAME = 'sakuharian-pwa-v4-1tap';
+const ASSETS = ['./', './index.html', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', (e) => {
-  self.skipWaiting();
   e.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)));
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', (e) => {
@@ -12,14 +12,19 @@ self.addEventListener('activate', (e) => {
       Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
     )
   );
+  self.clients.claim();
 });
 
 self.addEventListener('fetch', (e) => {
+  if (e.request.method !== 'GET') return;
+  if (e.request.url.includes('googleapis.com') || e.request.url.includes('accounts.google.com')) {
+    return;
+  }
   e.respondWith(
     fetch(e.request)
       .then((res) => {
-        const clone = res.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(e.request, clone));
+        const copy = res.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(e.request, copy));
         return res;
       })
       .catch(() => caches.match(e.request))
