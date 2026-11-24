@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sakuharian-pwa-v4-1tap';
+const CACHE_NAME = 'sakuharian-pwa-v5-stable';
 const ASSETS = ['./', './index.html', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', (e) => {
@@ -17,14 +17,17 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
-  if (e.request.url.includes('googleapis.com') || e.request.url.includes('accounts.google.com')) {
+  const url = e.request.url;
+  if (url.includes('googleapis.com') || url.includes('accounts.google.com')) {
     return;
   }
   e.respondWith(
     fetch(e.request)
       .then((res) => {
-        const copy = res.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(e.request, copy));
+        if (res && res.status === 200) {
+          const copy = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(e.request, copy));
+        }
         return res;
       })
       .catch(() => caches.match(e.request))

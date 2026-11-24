@@ -89,14 +89,16 @@
     .accounts-row { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: none; }
     .accounts-row::-webkit-scrollbar { display: none; }
     .acc-card {
-      min-width: 154px;
+      min-width: 158px;
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 15px;
       padding: 12px 14px;
       flex-shrink: 0;
       box-shadow: 0 2px 6px rgba(15,23,42,0.03);
+      cursor: pointer;
     }
+    .acc-card:active { transform: scale(0.98); }
     .acc-owner {
       display: inline-block;
       font-size: 10px;
@@ -328,7 +330,7 @@
     </div>
     <div class="sync-pill">
       <span id="headerSyncStatus">Belum terhubung ke Google Drive</span>
-      <strong id="headerSyncBadge" style="color:#A7F3D0;">1-Tap Drive</strong>
+      <strong id="headerSyncBadge" style="color:#A7F3D0;">v5 Stable</strong>
     </div>
   </header>
 
@@ -351,7 +353,7 @@
 
   <button class="fab" onclick="openTxModal()">+ Catat Transaksi</button>
 
-  <!-- Modal Pengaturan Google Drive Sync (Persis seperti Android!) -->
+  <!-- Modal Pengaturan Google Drive Sync -->
   <div class="modal-backdrop" id="driveModal" onclick="closeModalOnBg(event, 'driveModal')">
     <div class="modal">
       <h3>Pengaturan Google Drive Sync</h3>
@@ -374,7 +376,7 @@
       </button>
 
       <button class="btn-secondary" id="btnToggleAdv" onclick="toggleAdvancedDrive()">
-        PENGATURAN LANJUTAN (ID &amp; CLIENT ID) ▾
+        PENGATURAN LANJUTAN &amp; CADANGAN LOKAL ▾
       </button>
 
       <div class="adv-box" id="advDriveBox">
@@ -391,6 +393,9 @@
           <input type="text" id="inputClientId" />
         </div>
         <button class="btn-primary" onclick="saveAdvancedDriveConfig()">Simpan Perubahan ID</button>
+        <button class="btn-secondary" onclick="exportLocalBackupJson()">⬇ Unduh Cadangan Lokal (.json)</button>
+        <button class="btn-secondary" onclick="document.getElementById('restoreFileInput').click()">⬆ Pulihkan Cadangan Lokal (.json)</button>
+        <input type="file" id="restoreFileInput" accept=".json,application/json" style="display:none;" onchange="importLocalBackupJson(event)" />
       </div>
 
       <button class="btn-secondary" onclick="closeModal('driveModal')">Tutup</button>
@@ -441,10 +446,11 @@
     </div>
   </div>
 
-  <!-- Modal Tambah Dompet -->
+  <!-- Modal Tambah / Edit Dompet -->
   <div class="modal-backdrop" id="accModal" onclick="closeModalOnBg(event, 'accModal')">
     <div class="modal">
-      <h3>Tambah Dompet Istri</h3>
+      <h3 id="accModalTitle">Tambah Dompet Istri</h3>
+      <input type="hidden" id="editAccUuid" />
       <div class="field">
         <label>Nama Dompet / Bank</label>
         <input type="text" id="accName" placeholder="Contoh: Dompet Harian, BCA Istri, ShopeePay" />
@@ -458,10 +464,11 @@
         </select>
       </div>
       <div class="field">
-        <label>Saldo Awal (Rp)</label>
+        <label>Saldo Saat Ini (Rp)</label>
         <input type="number" id="accBalance" inputmode="numeric" placeholder="0" />
       </div>
       <button class="btn-primary" onclick="saveAccount()">Simpan Dompet</button>
+      <button class="btn-danger" id="btnDeleteAcc" style="display:none;" onclick="deleteCurrentAccount()">Hapus Dompet</button>
       <button class="btn-secondary" onclick="closeModal('accModal')">Batal</button>
     </div>
   </div>
@@ -478,6 +485,11 @@
     let tokenExpiresAt = 0;
     let tokenClient = null;
     let pendingActionAfterAuth = null;
+
+    // Sync concurrency mutex & queue
+    let isSyncing = false;
+    let syncQueued = false;
+    let queuedSilent = true;
 
     function generateUuid() {
       if (crypto && crypto.randomUUID) return crypto.randomUUID();
@@ -522,6 +534,18 @@
           const parsed = JSON.parse(raw);
           if (Array.isArray(parsed.accounts) && Array.isArray(parsed.transactions)) {
             parsed.deleted_items = Array.isArray(parsed.deleted_items) ? parsed.deleted_items : [];
+            if (parsed.accounts.length === 0) {
+              parsed.accounts.push({
+                uuid: generateUuid(),
+                name: "Dompet Harian",
+                bank_code: "TUNAI",
+                type: "CASH",
+                owner: "Istri",
+                balance: 0,
+                initial_balance: 0,
+                updated_at: nowIso()
+              });
+            }
             return parsed;
           }
         }
@@ -583,6 +607,16 @@
       return "TUNAI";
     }
 
+    async function fetchWithTimeout(url, options = {}, timeoutMs = 15000) {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        return await fetch(url, { ...options, signal: controller.signal });
+      } finally {
+        clearTimeout(id);
+      }
+    }
+
     function ensureGoogleAuth(interactive, callback) {
       const cfg = loadCfg();
       if (accessToken && Date.now() < tokenExpiresAt - 60000) {
@@ -598,7 +632,14 @@
         scope: DRIVE_SCOPES,
         callback: (resp) => {
           if (resp.error) {
-            if (interactive) showToast("Gagal login Google: " + resp.error);
+            if (interactive) {
+              showToast("Gagal login Google: " + resp.error);
+            } else {
+              const headerStatus = document.getElementById("headerSyncStatus");
+              if (headerStatus && cfg.istriFileId) {
+                headerStatus.textContent = "Ketuk ↻ Sync untuk menyegarkan sesi Drive";
+              }
+            }
             return;
           }
           accessToken = resp.access_token;
@@ -617,9 +658,10 @@
     async function findOrCreateIstriFileOnDrive(token) {
       const cfg = loadCfg();
       if (cfg.istriFileId) {
-        const checkRes = await fetch(`https://www.googleapis.com/drive/v3/files/${cfg.istriFileId}?fields=id,name,trashed`, {
+        const checkRes = await fetchWithTimeout(`https://www.googleapis.com/drive/v3/files/${cfg.istriFileId}?fields=id,name,trashed`, {
           headers: { Authorization: "Bearer " + token }
         });
+        if (checkRes.status === 401) throw new Error("TOKEN_EXPIRED");
         if (checkRes.ok) {
           const meta = await checkRes.json();
           if (!meta.trashed) return cfg.istriFileId;
@@ -627,9 +669,10 @@
       }
 
       const q = encodeURIComponent("name='sync_istri.json' and trashed=false");
-      const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)`, {
+      const searchRes = await fetchWithTimeout(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)`, {
         headers: { Authorization: "Bearer " + token }
       });
+      if (searchRes.status === 401) throw new Error("TOKEN_EXPIRED");
       if (searchRes.ok) {
         const searchData = await searchRes.json();
         if (searchData.files && searchData.files.length > 0) {
@@ -639,7 +682,7 @@
         }
       }
 
-      const createRes = await fetch("https://www.googleapis.com/drive/v3/files", {
+      const createRes = await fetchWithTimeout("https://www.googleapis.com/drive/v3/files", {
         method: "POST",
         headers: {
           Authorization: "Bearer " + token,
@@ -650,6 +693,7 @@
           mimeType: "application/json"
         })
       });
+      if (createRes.status === 401) throw new Error("TOKEN_EXPIRED");
       if (!createRes.ok) {
         const errText = await createRes.text();
         throw new Error("Gagal membuat sync_istri.json (" + createRes.status + "): " + errText);
@@ -664,8 +708,8 @@
       showToast("Menghubungkan ke Google Drive...");
       ensureGoogleAuth(true, async (token) => {
         try {
-          const fileId = await findOrCreateIstriFileOnDrive(token);
-          await runSyncWithToken(token, false);
+          await findOrCreateIstriFileOnDrive(token);
+          await executeSerializedSync(token, false);
           showToast("Berhasil! sync_istri.json aktif & tersinkron.");
           refreshDriveStatusUi();
         } catch (err) {
@@ -675,63 +719,106 @@
     }
 
     function triggerDriveSync(silent = false) {
+      if (!navigator.onLine) {
+        if (!silent) showToast("Sedang offline. Data tersimpan aman di HP.");
+        return;
+      }
       const cfg = loadCfg();
       if (!cfg.istriFileId && silent) return;
+
+      if (isSyncing) {
+        syncQueued = true;
+        queuedSilent = queuedSilent && silent;
+        return;
+      }
+
       ensureGoogleAuth(!silent, async (token) => {
-        try {
-          await runSyncWithToken(token, silent);
-        } catch (err) {
-          if (!silent) showToast("Sync gagal: " + (err.message || "Kesalahan jaringan"));
-        }
+        await executeSerializedSync(token, silent);
       });
     }
 
-    async function runSyncWithToken(token, silent) {
+    async function executeSerializedSync(token, silent) {
+      if (isSyncing) {
+        syncQueued = true;
+        queuedSilent = queuedSilent && silent;
+        return;
+      }
+      isSyncing = true;
       const btn = document.getElementById("btnQuickSync");
       if (btn) btn.textContent = "↻ ...";
+
       try {
-        const cfg = loadCfg();
-        const istriId = await findOrCreateIstriFileOnDrive(token);
-        let dataChanged = false;
-
-        if (cfg.suamiFileId) {
-          const resSuami = await fetch(`https://www.googleapis.com/drive/v3/files/${cfg.suamiFileId}?alt=media`, {
-            headers: { Authorization: "Bearer " + token }
-          });
-          if (resSuami.ok) {
-            const rawText = await resSuami.text();
-            if (rawText && rawText.trim()) {
-              const suamiObj = JSON.parse(rawText);
-              dataChanged = mergeSuamiJson(suamiObj);
-            }
-          } else if (!silent) {
-            if (resSuami.status === 404 || resSuami.status === 403) {
-              showToast("sync_suami.json belum di-Share ke Gmail Istri.");
-            }
+        await runSyncWithToken(token, silent);
+      } catch (err) {
+        if (err && err.message === "TOKEN_EXPIRED") {
+          accessToken = null;
+          tokenExpiresAt = 0;
+          if (!silent) {
+            ensureGoogleAuth(true, async (freshToken) => {
+              await runSyncWithToken(freshToken, false);
+            });
           }
-        }
-
-        const payloadStr = JSON.stringify(buildSyncPayloadForAndroid(), null, 2);
-        const upRes = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${istriId}?uploadType=media`, {
-          method: "PATCH",
-          headers: {
-            Authorization: "Bearer " + token,
-            "Content-Type": "application/json"
-          },
-          body: payloadStr
-        });
-        if (!upRes.ok) {
-          throw new Error("Gagal menulis sync_istri.json (" + upRes.status + ")");
-        }
-
-        cfg.lastSyncIso = nowIso();
-        saveCfg(cfg);
-
-        if (!silent || dataChanged) {
-          showToast(dataChanged ? "Sinkron berhasil! Data Suami diperbarui." : "Sinkron Drive berhasil!");
+        } else if (!silent) {
+          const msg = err && err.name === "AbortError"
+            ? "Koneksi lambat (timeout). Coba lagi."
+            : (err.message || "Kesalahan jaringan saat sinkron");
+          showToast("Sync gagal: " + msg);
         }
       } finally {
+        isSyncing = false;
         if (btn) btn.textContent = "↻ Sync";
+        if (syncQueued) {
+          const nextSilent = queuedSilent;
+          syncQueued = false;
+          queuedSilent = true;
+          setTimeout(() => triggerDriveSync(nextSilent), 300);
+        }
+      }
+    }
+
+    async function runSyncWithToken(token, silent) {
+      const cfg = loadCfg();
+      const istriId = await findOrCreateIstriFileOnDrive(token);
+      let dataChanged = false;
+
+      if (cfg.suamiFileId) {
+        const resSuami = await fetchWithTimeout(`https://www.googleapis.com/drive/v3/files/${cfg.suamiFileId}?alt=media`, {
+          headers: { Authorization: "Bearer " + token }
+        });
+        if (resSuami.status === 401) throw new Error("TOKEN_EXPIRED");
+        if (resSuami.ok) {
+          const rawText = await resSuami.text();
+          const trimmed = (rawText || "").trim();
+          if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+            const suamiObj = JSON.parse(trimmed);
+            dataChanged = mergeSuamiJson(suamiObj);
+          }
+        } else if (!silent) {
+          if (resSuami.status === 404 || resSuami.status === 403) {
+            showToast("sync_suami.json belum di-Share ke Gmail Istri.");
+          }
+        }
+      }
+
+      const payloadStr = JSON.stringify(buildSyncPayloadForAndroid(), null, 2);
+      const upRes = await fetchWithTimeout(`https://www.googleapis.com/upload/drive/v3/files/${istriId}?uploadType=media`, {
+        method: "PATCH",
+        headers: {
+          Authorization: "Bearer " + token,
+          "Content-Type": "application/json"
+        },
+        body: payloadStr
+      });
+      if (upRes.status === 401) throw new Error("TOKEN_EXPIRED");
+      if (!upRes.ok) {
+        throw new Error("Gagal menulis sync_istri.json (" + upRes.status + ")");
+      }
+
+      cfg.lastSyncIso = nowIso();
+      saveCfg(cfg);
+
+      if (!silent || dataChanged) {
+        showToast(dataChanged ? "Sinkron berhasil! Data Suami diperbarui." : "Sinkron Drive berhasil!");
       }
     }
 
@@ -778,8 +865,8 @@
       const btn = document.getElementById("btnToggleAdv");
       const isOpen = box.classList.toggle("open");
       btn.textContent = isOpen
-        ? "PENGATURAN LANJUTAN (ID & CLIENT ID) ▴"
-        : "PENGATURAN LANJUTAN (ID & CLIENT ID) ▾";
+        ? "PENGATURAN LANJUTAN & CADANGAN LOKAL ▴"
+        : "PENGATURAN LANJUTAN & CADANGAN LOKAL ▾";
     }
 
     function saveAdvancedDriveConfig() {
@@ -792,36 +879,77 @@
       triggerDriveSync(false);
     }
 
+    function exportLocalBackupJson() {
+      const dataStr = JSON.stringify({ cfg: loadCfg(), db }, null, 2);
+      const blob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "SakuHarian_Istri_Backup_" + new Date().toISOString().slice(0, 10) + ".json";
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast("Cadangan JSON diunduh.");
+    }
+
+    function importLocalBackupJson(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const parsed = JSON.parse(String(reader.result || "{}"));
+          const nextDb = parsed.db && Array.isArray(parsed.db.accounts) ? parsed.db : parsed;
+          if (!Array.isArray(nextDb.accounts) || !Array.isArray(nextDb.transactions)) {
+            throw new Error("Format file cadangan tidak valid.");
+          }
+          nextDb.deleted_items = Array.isArray(nextDb.deleted_items) ? nextDb.deleted_items : [];
+          db = nextDb;
+          saveDb(db);
+          if (parsed.cfg) saveCfg({ ...loadCfg(), ...parsed.cfg });
+          renderAll();
+          showToast("Data cadangan berhasil dipulihkan!");
+        } catch (e) {
+          showToast("Gagal memulihkan file: " + e.message);
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = "";
+    }
+
     function buildSyncPayloadForAndroid() {
-      const accOut = db.accounts.map(a => ({
-        uuid: a.uuid,
-        name: a.name,
-        bank_code: a.bank_code || guessBankCode(a.name),
-        type: a.type || "CASH",
-        owner: a.owner || "Istri",
-        balance: Math.round(Number(a.balance) || 0),
-        initial_balance: Math.round(Number(a.initial_balance ?? a.balance) || 0),
-        updated_at: a.updated_at || nowIso(),
-        is_deleted: false
-      }));
+      const accOut = db.accounts
+        .filter(a => (a.owner || "Istri").toLowerCase() === "istri")
+        .map(a => ({
+          uuid: a.uuid,
+          name: a.name,
+          bank_code: a.bank_code || guessBankCode(a.name),
+          type: a.type || "CASH",
+          owner: "Istri",
+          balance: Math.round(Number(a.balance) || 0),
+          initial_balance: Math.round(Number(a.initial_balance ?? a.balance) || 0),
+          updated_at: a.updated_at || nowIso(),
+          is_deleted: false
+        }));
 
       db.deleted_items.filter(d => d.entity_type === "account").forEach(d => {
         accOut.push({ uuid: d.uuid, updated_at: d.deleted_at, is_deleted: true });
       });
 
-      const txOut = db.transactions.map(t => ({
-        uuid: t.uuid,
-        account_uuid: t.account_uuid,
-        type: t.type,
-        title: t.title,
-        category: t.category || "Lainnya",
-        amount: Math.round(Number(t.amount) || 0),
-        recorded_by: t.recorded_by || "Istri",
-        timestamp: t.timestamp || Date.parse(t.trx_date) || Date.now(),
-        trx_date: t.trx_date || new Date(t.timestamp || Date.now()).toISOString(),
-        updated_at: t.updated_at || nowIso(),
-        is_deleted: false
-      }));
+      const txOut = db.transactions
+        .filter(t => (t.recorded_by || "Istri").toLowerCase() === "istri")
+        .map(t => ({
+          uuid: t.uuid,
+          account_uuid: t.account_uuid,
+          type: t.type,
+          title: t.title,
+          category: t.category || "Lainnya",
+          amount: Math.round(Number(t.amount) || 0),
+          recorded_by: "Istri",
+          timestamp: t.timestamp || Date.parse(t.trx_date) || Date.now(),
+          trx_date: t.trx_date || new Date(t.timestamp || Date.now()).toISOString(),
+          updated_at: t.updated_at || nowIso(),
+          is_deleted: false
+        }));
 
       db.deleted_items.filter(d => d.entity_type === "transaction").forEach(d => {
         txOut.push({ uuid: d.uuid, updated_at: d.deleted_at, is_deleted: true });
@@ -843,6 +971,10 @@
 
       remAccounts.forEach(rem => {
         if (!rem.uuid) return;
+        const remOwner = (rem.owner || "Suami").toLowerCase();
+        // Never let remote JSON overwrite Istri's own local wallet balance
+        if (remOwner === "istri") return;
+
         const remMs = Date.parse(rem.updated_at || "") || 0;
         const idx = db.accounts.findIndex(a => a.uuid === rem.uuid);
 
@@ -859,34 +991,26 @@
         if (isTombstoned) return;
 
         if (idx < 0) {
-          const sameNameIdx = db.accounts.findIndex(a => a.name.toLowerCase() === (rem.name || "").toLowerCase());
-          if (sameNameIdx >= 0) {
-            const oldUuid = db.accounts[sameNameIdx].uuid;
-            db.accounts[sameNameIdx].uuid = rem.uuid;
-            db.accounts[sameNameIdx].balance = Number(rem.balance) || 0;
-            db.accounts[sameNameIdx].updated_at = rem.updated_at || nowIso();
-            db.transactions.forEach(t => { if (t.account_uuid === oldUuid) t.account_uuid = rem.uuid; });
-          } else {
-            db.accounts.push({
-              uuid: rem.uuid,
-              name: rem.name || "Akun Suami",
-              bank_code: rem.bank_code || guessBankCode(rem.name),
-              type: rem.type || "BANK",
-              owner: rem.owner || "Suami",
-              balance: Number(rem.balance) || 0,
-              initial_balance: Number(rem.initial_balance ?? rem.balance) || 0,
-              updated_at: rem.updated_at || nowIso()
-            });
-          }
+          db.accounts.push({
+            uuid: rem.uuid,
+            name: rem.name || "Akun Suami",
+            bank_code: rem.bank_code || guessBankCode(rem.name),
+            type: rem.type || "BANK",
+            owner: "Suami",
+            balance: Number(rem.balance) || 0,
+            initial_balance: Number(rem.initial_balance ?? rem.balance) || 0,
+            updated_at: rem.updated_at || nowIso()
+          });
           changed = true;
         } else {
           const locMs = Date.parse(db.accounts[idx].updated_at || "") || 0;
-          if (remMs >= locMs) {
+          const newBal = Number(rem.balance) || 0;
+          if (remMs >= locMs || db.accounts[idx].balance !== newBal) {
             db.accounts[idx].name = rem.name || db.accounts[idx].name;
             db.accounts[idx].bank_code = rem.bank_code || db.accounts[idx].bank_code;
             db.accounts[idx].type = rem.type || db.accounts[idx].type;
-            db.accounts[idx].owner = rem.owner || db.accounts[idx].owner;
-            db.accounts[idx].balance = Number(rem.balance) || 0;
+            db.accounts[idx].owner = "Suami";
+            db.accounts[idx].balance = newBal;
             db.accounts[idx].updated_at = rem.updated_at || nowIso();
             changed = true;
           }
@@ -895,6 +1019,9 @@
 
       remTransactions.forEach(rem => {
         if (!rem.uuid) return;
+        const remWho = (rem.recorded_by || "Suami").toLowerCase();
+        if (remWho === "istri") return;
+
         const remMs = Date.parse(rem.updated_at || "") || 0;
         const idx = db.transactions.findIndex(t => t.uuid === rem.uuid);
 
@@ -922,7 +1049,7 @@
             title: rem.title || "Transaksi Suami",
             category: rem.category || "Harian",
             amount: Number(rem.amount) || 0,
-            recorded_by: rem.recorded_by || "Suami",
+            recorded_by: "Suami",
             timestamp: ts,
             trx_date: new Date(ts).toISOString(),
             updated_at: rem.updated_at || new Date(ts).toISOString()
@@ -938,7 +1065,7 @@
               title: rem.title || db.transactions[idx].title,
               category: rem.category || db.transactions[idx].category,
               amount: Number(rem.amount) || 0,
-              recorded_by: rem.recorded_by || db.transactions[idx].recorded_by,
+              recorded_by: "Suami",
               timestamp: ts,
               trx_date: new Date(ts).toISOString(),
               updated_at: rem.updated_at || nowIso()
@@ -976,8 +1103,8 @@
       accRow.innerHTML = db.accounts.map(a => {
         const isSuami = (a.owner || "").toLowerCase() === "suami";
         return `
-          <div class="acc-card">
-            <span class="acc-owner ${isSuami ? "suami" : ""}">${a.owner || "Istri"}</span>
+          <div class="acc-card" onclick="openAccountModal('${a.uuid}')">
+            <span class="acc-owner ${isSuami ? "suami" : ""}">${escapeHtml(a.owner || "Istri")}</span>
             <div class="acc-name">${escapeHtml(a.name)}</div>
             <div class="acc-bal">${formatRp(a.balance)}</div>
           </div>
@@ -1046,11 +1173,17 @@
 
     function openTxModal(uuid = null) {
       const sel = document.getElementById("txAccountSelect");
-      sel.innerHTML = db.accounts.map(a => `<option value="${a.uuid}">${escapeHtml(a.name)} (${a.owner || "Istri"})</option>`).join("");
+      const istriAccounts = db.accounts.filter(a => (a.owner || "Istri").toLowerCase() === "istri");
+      const listForSelect = istriAccounts.length > 0 ? istriAccounts : db.accounts;
+      sel.innerHTML = listForSelect.map(a => `<option value="${a.uuid}">${escapeHtml(a.name)} (${a.owner || "Istri"})</option>`).join("");
 
       if (uuid) {
         const tx = db.transactions.find(t => t.uuid === uuid);
         if (!tx) return;
+        if ((tx.recorded_by || "Istri").toLowerCase() === "suami") {
+          showToast("Transaksi Suami hanya dapat diedit dari HP Suami.");
+          return;
+        }
         document.getElementById("txModalTitle").textContent = "Edit Transaksi";
         document.getElementById("editTxUuid").value = tx.uuid;
         selectTxType(tx.type);
@@ -1066,8 +1199,7 @@
         document.getElementById("txModalTitle").textContent = "Catat Transaksi";
         document.getElementById("editTxUuid").value = "";
         selectTxType("EXPENSE");
-        const istriAcc = db.accounts.find(a => (a.owner || "").toLowerCase() === "istri");
-        if (istriAcc) sel.value = istriAcc.uuid;
+        if (listForSelect[0]) sel.value = listForSelect[0].uuid;
         document.getElementById("txTitle").value = "";
         document.getElementById("txAmount").value = "";
         const d = new Date();
@@ -1157,13 +1289,33 @@
       }
     }
 
-    function openAccountModal() {
-      document.getElementById("accName").value = "";
-      document.getElementById("accBalance").value = "";
+    function openAccountModal(uuid = null) {
+      if (uuid) {
+        const acc = db.accounts.find(a => a.uuid === uuid);
+        if (!acc) return;
+        if ((acc.owner || "Istri").toLowerCase() === "suami") {
+          showToast("Rekening Suami dikelola dari Android Suami.");
+          return;
+        }
+        document.getElementById("accModalTitle").textContent = "Edit Dompet Istri";
+        document.getElementById("editAccUuid").value = acc.uuid;
+        document.getElementById("accName").value = acc.name;
+        document.getElementById("accType").value = acc.type || "CASH";
+        document.getElementById("accBalance").value = acc.balance;
+        document.getElementById("btnDeleteAcc").style.display = "block";
+      } else {
+        document.getElementById("accModalTitle").textContent = "Tambah Dompet Istri";
+        document.getElementById("editAccUuid").value = "";
+        document.getElementById("accName").value = "";
+        document.getElementById("accType").value = "CASH";
+        document.getElementById("accBalance").value = "";
+        document.getElementById("btnDeleteAcc").style.display = "none";
+      }
       document.getElementById("accModal").classList.add("open");
     }
 
     function saveAccount() {
+      const editUuid = document.getElementById("editAccUuid").value;
       const name = document.getElementById("accName").value.trim();
       const type = document.getElementById("accType").value;
       const balance = Math.round(Number(document.getElementById("accBalance").value) || 0);
@@ -1171,21 +1323,57 @@
         showToast("Masukkan nama dompet.");
         return;
       }
-      db.accounts.push({
-        uuid: generateUuid(),
-        name,
-        bank_code: guessBankCode(name),
-        type,
-        owner: "Istri",
-        balance,
-        initial_balance: balance,
-        updated_at: nowIso()
-      });
+
+      if (editUuid) {
+        const idx = db.accounts.findIndex(a => a.uuid === editUuid);
+        if (idx >= 0) {
+          db.accounts[idx].name = name;
+          db.accounts[idx].bank_code = guessBankCode(name);
+          db.accounts[idx].type = type;
+          db.accounts[idx].balance = balance;
+          db.accounts[idx].updated_at = nowIso();
+        }
+      } else {
+        db.accounts.push({
+          uuid: generateUuid(),
+          name,
+          bank_code: guessBankCode(name),
+          type,
+          owner: "Istri",
+          balance,
+          initial_balance: balance,
+          updated_at: nowIso()
+        });
+      }
+
       saveDb(db);
       closeModal("accModal");
       renderAll();
-      showToast("Dompet ditambahkan!");
+      showToast(editUuid ? "Dompet diperbarui!" : "Dompet ditambahkan!");
       triggerDriveSync(true);
+    }
+
+    function deleteCurrentAccount() {
+      const editUuid = document.getElementById("editAccUuid").value;
+      const istriAccounts = db.accounts.filter(a => (a.owner || "Istri").toLowerCase() === "istri");
+      if (istriAccounts.length <= 1) {
+        showToast("Minimal harus ada 1 dompet Istri.");
+        return;
+      }
+      const idx = db.accounts.findIndex(a => a.uuid === editUuid);
+      if (idx >= 0) {
+        const removed = db.accounts.splice(idx, 1)[0];
+        db.deleted_items.push({ uuid: removed.uuid, entity_type: "account", deleted_at: nowIso() });
+        db.transactions.filter(t => t.account_uuid === removed.uuid).forEach(t => {
+          db.deleted_items.push({ uuid: t.uuid, entity_type: "transaction", deleted_at: nowIso() });
+        });
+        db.transactions = db.transactions.filter(t => t.account_uuid !== removed.uuid);
+        saveDb(db);
+        closeModal("accModal");
+        renderAll();
+        showToast("Dompet dihapus.");
+        triggerDriveSync(true);
+      }
     }
 
     function closeModal(id) {
@@ -1195,6 +1383,16 @@
     function closeModalOnBg(e, id) {
       if (e.target.id === id) closeModal(id);
     }
+
+    // Auto-sync triggers on visibility restore & network reconnect
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        triggerDriveSync(true);
+      }
+    });
+    window.addEventListener("online", () => {
+      triggerDriveSync(true);
+    });
 
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("./sw.js").catch(() => {});
