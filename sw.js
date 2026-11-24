@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sakuharian-pwa-v5-stable';
+const CACHE_NAME = 'sakuharian-pwa-v6-procharts';
 const ASSETS = ['./', './index.html', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', (e) => {
