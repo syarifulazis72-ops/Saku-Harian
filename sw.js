@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sakuharian-pwa-v6-procharts';
+const CACHE_NAME = 'sakuharian-pwa-v7-androidmirror';
 const ASSETS = ['./', './index.html', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', (e) => {
